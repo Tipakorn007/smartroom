@@ -15,9 +15,11 @@ import { join } from "node:path";
 import { CHECKIN_WINDOW_MS } from "../shared/constants";
 import { handleApi } from "./api-handler";
 import { HttpError, json } from "./http";
+import { handleLocalDemoApi } from "./local-demo";
 import { startSweeper } from "./sweeper";
 
 const PORT = Number(process.env.PORT ?? 3000);
+const LOCAL_DEMO_MODE = process.env.SMARTROOM_LOCAL_DEMO === "true";
 const CLIENT_DIR = join(import.meta.dir, "../client");
 const PUBLIC_DIR = join(import.meta.dir, "../../public");
 
@@ -72,7 +74,7 @@ const server = Bun.serve({
     const url = new URL(request.url);
     try {
       if (url.pathname.startsWith("/api/")) {
-        return await handleApi(request);
+        return LOCAL_DEMO_MODE ? handleLocalDemoApi(request) : handleApi(request);
       }
       return await serveStatic(url.pathname);
     } catch (error) {
@@ -86,7 +88,8 @@ const server = Bun.serve({
 
 });
 
-startSweeper();
+if (!LOCAL_DEMO_MODE) startSweeper();
 
 console.log(`SmartRoom พร้อมใช้งานที่ http://localhost:${server.port}`);
+if (LOCAL_DEMO_MODE) console.log("โหมดเดโมในเครื่อง: ข้อมูลการจองจะหายเมื่อปิดเซิร์ฟเวอร์");
 console.log(`สิทธิ์เช็กอิน ${CHECKIN_WINDOW_MS / 60000} นาที · ตัวตั้งเวลาตรวจทุก 30 วินาที`);

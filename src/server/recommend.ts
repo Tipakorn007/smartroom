@@ -15,7 +15,7 @@
  * เพราะบางวันห้องที่ครบทุกอย่างไม่ว่าง ผู้ใช้ยังควรได้ตัวเลือกที่ดีที่สุดเท่าที่มี
  */
 
-import type { Recommendation, RecommendRequest } from "../shared/types.ts";
+import type { Recommendation, RecommendRequest, RoomView } from "../shared/types.ts";
 import { listRoomViews } from "./rooms.ts";
 import { ensureDatabase } from "./db.ts";
 
@@ -27,9 +27,8 @@ const QUIET_PENALTY: Record<string, number> = {
   group: 25,
 };
 
-export async function recommendRooms(request: RecommendRequest, now: number): Promise<Recommendation[]> {
-  await ensureDatabase();
-  const availableRooms = (await listRoomViews(now)).filter(
+export function rankRooms(rooms: RoomView[], request: RecommendRequest): Recommendation[] {
+  const availableRooms = rooms.filter(
     (room) => room.status === "available" && room.capacity >= request.people,
   );
 
@@ -85,4 +84,12 @@ export async function recommendRooms(request: RecommendRequest, now: number): Pr
       return a.room.id - b.room.id;
     })
     .slice(0, 3);
+}
+
+export async function recommendRooms(
+  request: RecommendRequest,
+  now: number,
+): Promise<Recommendation[]> {
+  await ensureDatabase();
+  return rankRooms(await listRoomViews(now), request);
 }

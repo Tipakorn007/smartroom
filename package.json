@@ -9,7 +9,8 @@
   "description": "SmartRoom — ระบบจองห้องติวหนังสือที่รู้สถานะห้องจากการใช้งานจริง (Bun + Neon Postgres)",
   "scripts": {
     "build": "bun ./scripts/build.ts",
-    "dev": "bun run build && bun --watch ./src/server/index.ts",
+    "dev": "bun run build && bun --watch ./scripts/dev-demo.ts",
+    "dev:database": "bun run build && bun --watch ./src/server/index.ts",
     "start": "bun run build && bun ./src/server/index.ts",
     "typecheck": "tsc --noEmit"
   },
