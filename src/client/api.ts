@@ -32,7 +32,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
       headers: { "content-type": "application/json" },
     });
   } catch {
-    throw new ApiError("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาตรวจสอบว่าเซิร์ฟเวอร์ทำงานอยู่", 0);
+    throw new ApiError("เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่อีกครั้ง", 0);
   }
 
   const text = await response.text();

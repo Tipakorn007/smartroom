@@ -50,10 +50,17 @@ export interface Booking {
   releasedAt: number | null;
 }
 
+/** ข้อมูลการจองขั้นต่ำที่แสดงบนแผนผังห้องสาธารณะ */
+export interface CurrentBookingSummary {
+  status: "pending" | "active";
+  startAt: number;
+  endAt: number;
+}
+
 /** ห้อง + สถานะปัจจุบัน ใช้ส่งให้ frontend วาดแผนผังห้อง */
 export interface RoomView extends Room {
   status: RoomStatus;
-  currentBooking: Booking | null;
+  currentBooking: CurrentBookingSummary | null;
   /** เวลาสุดท้ายที่ยังเช็กอินได้ (เฉพาะสถานะ pending) */
   checkinDeadline: number | null;
 }

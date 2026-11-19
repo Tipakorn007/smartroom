@@ -115,15 +115,18 @@ export async function releaseExpiredBookings(
   await ensureDatabase();
   const rows = await query<BookingRoomRow>(
     `UPDATE bookings AS b
-     SET status = 'released', released_at = $1
+     SET status = CASE WHEN b.status = 'pending' THEN 'released' ELSE 'finished' END,
+         released_at = CASE WHEN b.status = 'pending' THEN $1 ELSE b.released_at END
      FROM rooms AS r
      WHERE b.room_id = r.id
-       AND b.status = 'pending'
-       AND b.start_at + $2 <= $1
+       AND (
+         (b.status = 'pending' AND b.start_at + $2 <= $1)
+         OR (b.status = 'active' AND b.end_at <= $1)
+       )
      RETURNING b.*, r.name AS room_name`,
     [now, CHECKIN_WINDOW_MS],
   );
-  return rows.map((row) => ({
+  return rows.filter((row) => row.status === "released").map((row) => ({
     booking: { ...toBooking(row), status: "released", releasedAt: now },
     roomName: row.room_name,
   }));

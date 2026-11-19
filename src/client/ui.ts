@@ -67,20 +67,19 @@ export function el<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-const THAI_MONTHS = [
-  "ม.ค.",
-  "ก.พ.",
-  "มี.ค.",
-  "เม.ย.",
-  "พ.ค.",
-  "มิ.ย.",
-  "ก.ค.",
-  "ส.ค.",
-  "ก.ย.",
-  "ต.ค.",
-  "พ.ย.",
-  "ธ.ค.",
-];
+const BANGKOK_CLOCK = new Intl.DateTimeFormat("th-TH", {
+  timeZone: "Asia/Bangkok",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+const BANGKOK_DATE = new Intl.DateTimeFormat("th-TH", {
+  timeZone: "Asia/Bangkok",
+  calendar: "buddhist",
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+});
 
 function pad(value: number): string {
   return String(value).padStart(2, "0");
@@ -88,14 +87,13 @@ function pad(value: number): string {
 
 /** แสดงเวลาแบบ 24 ชั่วโมง เช่น 14:05 */
 export function formatClock(timestamp: number): string {
-  const date = new Date(timestamp);
-  return `${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  return BANGKOK_CLOCK.format(new Date(timestamp));
 }
 
 /** แสดงวันที่แบบไทย + เวลา เช่น 19 พ.ย. 2569 · 14:05 */
 export function formatDateTime(timestamp: number): string {
   const date = new Date(timestamp);
-  return `${date.getDate()} ${THAI_MONTHS[date.getMonth()]} ${date.getFullYear() + 543} · ${formatClock(timestamp)}`;
+  return `${BANGKOK_DATE.format(date)} · ${formatClock(timestamp)}`;
 }
 
 /** แปลงมิลลิวินาทีที่เหลือเป็น mm:ss (ใช้กับนาฬิกานับถอยหลัง) */

@@ -36,7 +36,7 @@ Schema และข้อมูลตัวอย่างจะถูกสร�
 2. สร้างโปรเจกต์ฐานข้อมูลบน Neon แล้วคัดลอก `DATABASE_URL`
 3. ใน Vercel เลือก **Add New Project** และ Import repository จาก GitHub
 4. ใน Project Settings → Environment Variables เพิ่ม `DATABASE_URL` สำหรับ Production (และ Preview หากต้องการ)
-5. Deploy โปรเจกต์ Vercel จะรัน `bun run build` และสร้าง API Function จากโฟลเดอร์ `api/`
+5. Deploy โปรเจกต์ Vercel จะรัน `bun run build` เพื่อสร้างไฟล์ frontend และ bundle API handler สำหรับ Function
 6. เปิด URL ที่ Vercel ให้มา
 
 Vercel Functions ไม่เปิด WebSocket ค้างไว้ แอปจึงดึงสถานะจาก API ทุก 10 วินาทีแทน
@@ -45,7 +45,7 @@ Vercel Functions ไม่เปิด WebSocket ค้างไว้ แอป
 ## คำสั่ง
 
 ```bash
-bun run build      # สร้าง frontend ลง public/
+bun run build      # สร้าง frontend ลง public/ และ bundle API handler
 bun run dev        # build และเปิด server สำหรับพัฒนา
 bun run start      # build และเปิด server
 bun run typecheck  # ตรวจ TypeScript

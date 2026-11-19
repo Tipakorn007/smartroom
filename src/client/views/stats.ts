@@ -7,7 +7,12 @@
 import type { StatsResponse } from "../../shared/types";
 import { el, formatHourRange } from "../ui";
 
-export function renderStatsView(container: HTMLElement, stats: StatsResponse | null): void {
+export function renderStatsView(
+  container: HTMLElement,
+  stats: StatsResponse | null,
+  error: string | null = null,
+  onRetry?: () => void,
+): void {
   const heading = el("div", { class: "section-heading" }, [
     el("div", {}, [
       el("h2", { text: "สถิติการใช้งานห้อง" }),
@@ -16,8 +21,23 @@ export function renderStatsView(container: HTMLElement, stats: StatsResponse | n
   ]);
   container.append(heading);
 
+  if (error) {
+    const retryButton = el("button", {
+      class: "button primary",
+      type: "button",
+      text: "ลองโหลดอีกครั้ง",
+    });
+    retryButton.addEventListener("click", () => onRetry?.());
+    container.append(
+      el("section", { class: "alert stack" }, [
+        el("p", { text: error }),
+        retryButton,
+      ]),
+    );
+  }
+
   if (!stats) {
-    container.append(el("p", { class: "empty muted", text: "กำลังโหลดสถิติ…" }));
+    if (!error) container.append(el("p", { class: "empty muted", text: "กำลังโหลดสถิติ…" }));
     return;
   }
 

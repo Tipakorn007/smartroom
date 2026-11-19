@@ -189,7 +189,7 @@ function buildRoomStatus(room: RoomView): HTMLElement {
     statusContent.push(
       el("span", {
         class: "room-status-detail",
-        text: `จองโดย ${booking.userName} · เริ่ม ${formatClock(booking.startAt)} น.`,
+        text: `จองแล้ว · เริ่ม ${formatClock(booking.startAt)} น.`,
       }),
     );
     if (room.checkinDeadline !== null) {
@@ -205,7 +205,7 @@ function buildRoomStatus(room: RoomView): HTMLElement {
     statusContent.push(
       el("span", {
         class: "room-status-detail",
-        text: `ใช้โดย ${booking.userName} · ถึง ${formatClock(booking.endAt)} น.`,
+        text: `กำลังใช้งาน · ถึง ${formatClock(booking.endAt)} น.`,
       }),
     );
   }

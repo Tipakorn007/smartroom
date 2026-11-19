@@ -3,8 +3,15 @@
  */
 
 import { CHECKIN_WINDOW_MS } from "../shared/constants.ts";
-import type { Room, RoomView } from "../shared/types.ts";
-import { ensureDatabase, query, toBooking, toRoom, type BookingRow, type RoomRow } from "./db.ts";
+import type { CurrentBookingSummary, Room, RoomView } from "../shared/types.ts";
+import { ensureDatabase, query, toRoom, type RoomRow } from "./db.ts";
+
+interface CurrentBookingRow {
+  room_id: number;
+  start_at: number | string;
+  end_at: number | string;
+  status: "pending" | "active";
+}
 
 export async function listRooms(): Promise<Room[]> {
   await ensureDatabase();
@@ -22,18 +29,26 @@ export async function listRoomViews(now: number): Promise<RoomView[]> {
   await ensureDatabase();
   const [rooms, rows] = await Promise.all([
     query<RoomRow>("SELECT * FROM rooms ORDER BY floor ASC, name ASC"),
-    query<BookingRow>(
-      `SELECT * FROM bookings
+    query<CurrentBookingRow>(
+      `SELECT room_id, start_at, end_at, status FROM bookings
        WHERE status IN ('pending', 'active') AND start_at <= $1 AND end_at > $1
        ORDER BY start_at ASC`,
       [now],
     ),
   ]);
-  const currentBookings = rows.map(toBooking);
+  const currentBookings = rows.map((row) => ({
+    roomId: Number(row.room_id),
+    booking: {
+      status: row.status,
+      startAt: Number(row.start_at),
+      endAt: Number(row.end_at),
+    } satisfies CurrentBookingSummary,
+  }));
 
   return rooms.map((row) => {
     const room = toRoom(row);
-    const currentBooking = currentBookings.find((booking) => booking.roomId === room.id) ?? null;
+    const currentBooking =
+      currentBookings.find((booking) => booking.roomId === room.id)?.booking ?? null;
     if (!currentBooking) {
       return { ...room, status: "available", currentBooking: null, checkinDeadline: null };
     }

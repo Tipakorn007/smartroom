@@ -22,13 +22,17 @@ const state: {
   tab: Tab;
   floor: number;
   rooms: RoomView[];
+  roomsError: string | null;
   stats: StatsResponse | null;
+  statsError: string | null;
   initialized: boolean;
 } = {
   tab: "rooms",
   floor: 1,
   rooms: [],
+  roomsError: null,
   stats: null,
+  statsError: null,
   initialized: false,
 };
 
@@ -44,7 +48,7 @@ async function bootstrap(): Promise<void> {
   // หน้าเช็กอินเป็นหน้าเดี่ยว ไม่มีแท็บ (เปิดจาก QR บนมือถือ)
   const checkinMatch = window.location.pathname.match(/^\/checkin\/([^/]+)$/);
   if (checkinMatch) {
-    await renderCheckinPage(root, decodeURIComponent(checkinMatch[1] ?? ""));
+    await renderCheckinPage(root, checkinMatch[1] ?? "");
     return;
   }
 
@@ -139,6 +143,13 @@ function render(): void {
   mainElement.replaceChildren();
 
   if (state.tab === "rooms") {
+    if (state.roomsError && state.rooms.length === 0) {
+      mainElement.append(
+        retryCard("โหลดข้อมูลห้องไม่สำเร็จ", state.roomsError, () => void refreshRooms()),
+      );
+      return;
+    }
+
     renderRoomsView(mainElement, state.rooms, state.floor, {
       onSelectFloor: (floor) => {
         state.floor = floor;
@@ -146,6 +157,11 @@ function render(): void {
       },
       onBook: (room) => openBookingDialog(room, () => void refreshRooms()),
     });
+    if (state.roomsError) {
+      mainElement.prepend(
+        retryCard("โหลดข้อมูลห้องไม่สำเร็จ", state.roomsError, () => void refreshRooms()),
+      );
+    }
     return;
   }
 
@@ -156,13 +172,28 @@ function render(): void {
     return;
   }
 
-  renderStatsView(mainElement, state.stats);
+  renderStatsView(mainElement, state.stats, state.statsError, () => void loadStats());
+}
+
+function retryCard(title: string, message: string, onRetry: () => void): HTMLElement {
+  const retryButton = el("button", {
+    class: "button primary",
+    type: "button",
+    text: "ลองโหลดอีกครั้ง",
+  });
+  retryButton.addEventListener("click", onRetry);
+  return el("section", { class: "card stack" }, [
+    el("h2", { text: title }),
+    el("p", { class: "muted", text: message }),
+    retryButton,
+  ]);
 }
 
 async function refreshRooms(): Promise<void> {
   try {
     const rooms = await api.rooms();
     state.rooms = rooms;
+    state.roomsError = null;
 
     // ครั้งแรกให้เลือกชั้นของห้องว่างห้องแรก เพื่อให้ผู้ใช้เห็นห้องที่จองได้ทันที
     if (!state.initialized) {
@@ -174,15 +205,23 @@ async function refreshRooms(): Promise<void> {
     // ถ้าอยู่แท็บอื่น ไม่ต้องวาดใหม่ทับฟอร์มที่ผู้ใช้กำลังกรอก
     if (state.tab === "rooms") render();
   } catch (error) {
-    showToast(error instanceof Error ? error.message : "โหลดข้อมูลห้องไม่สำเร็จ", "warn");
+    const message = error instanceof Error ? error.message : "โหลดข้อมูลห้องไม่สำเร็จ";
+    const shouldNotify = state.roomsError !== message;
+    state.roomsError = message;
+    if (state.tab === "rooms") render();
+    if (shouldNotify) showToast(message, "warn");
   }
 }
 
 async function loadStats(): Promise<void> {
   try {
     state.stats = await api.stats();
+    state.statsError = null;
   } catch (error) {
-    showToast(error instanceof Error ? error.message : "โหลดสถิติไม่สำเร็จ", "warn");
+    const message = error instanceof Error ? error.message : "โหลดสถิติไม่สำเร็จ";
+    const shouldNotify = state.statsError !== message;
+    state.statsError = message;
+    if (shouldNotify) showToast(message, "warn");
   }
   if (state.tab === "stats") render();
 }

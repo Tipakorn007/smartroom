@@ -9,6 +9,7 @@ node_modules/
 
 # build output ของฝั่ง client (สร้างใหม่ได้ด้วย bun run build)
 public/
+api/_handler.js
 
 # ฐานข้อมูลและไฟล์ runtime local (ไม่ควร commit)
 data/
