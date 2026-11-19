@@ -44,14 +44,24 @@ const HISTORY = [
 const SAMPLE_NAMES = ["ธนกร ศรีสุข", "ปุณยวีร์ ใจดี", "ณัฐพล วงศ์ทอง", "พิมพ์ชนก แก้วใส"];
 
 export async function seedIfEmpty(): Promise<void> {
-  for (const room of SEED_ROOMS) {
-    await query(
-      `INSERT INTO rooms (id, name, floor, capacity, has_power, has_whiteboard, quiet_level)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)
-       ON CONFLICT (id) DO NOTHING`,
-      [room.id, room.name, room.floor, room.capacity, room.hasPower, room.hasWhiteboard, room.quietLevel],
-    );
-  }
+  const roomValues = SEED_ROOMS.map((_, index) => {
+    const offset = index * 7;
+    return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7})`;
+  }).join(", ");
+  await query(
+    `INSERT INTO rooms (id, name, floor, capacity, has_power, has_whiteboard, quiet_level)
+     VALUES ${roomValues}
+     ON CONFLICT (id) DO NOTHING`,
+    SEED_ROOMS.flatMap((room) => [
+      room.id,
+      room.name,
+      room.floor,
+      room.capacity,
+      room.hasPower,
+      room.hasWhiteboard,
+      room.quietLevel,
+    ]),
+  );
 
   const dateParts = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Bangkok",
@@ -67,28 +77,32 @@ export async function seedIfEmpty(): Promise<void> {
   const todayStart = Date.parse(
     `${datePart("year")}-${datePart("month")}-${datePart("day")}T00:00:00+07:00`,
   );
-  for (const [index, item] of HISTORY.entries()) {
+  const bookingValues = HISTORY.map((_, index) => {
+    const offset = index * 9;
+    return `($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5}, $${offset + 6}, $${offset + 7}, $${offset + 8}, $${offset + 9})`;
+  }).join(", ");
+  const bookingParameters = HISTORY.flatMap((item, index) => {
     const startAt = todayStart - item.daysAgo * DAY + item.hour * HOUR;
     const token = (index + 1).toString(16).padStart(32, "0");
     const checkedInAt = item.status === "finished" ? startAt + 3 * MINUTE : null;
     const releasedAt = item.status === "released" ? startAt + CHECKIN_WINDOW_MS : null;
-    await query(
-      `INSERT INTO bookings
-         (room_id, user_name, start_at, end_at, status, token, created_at, checked_in_at, released_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       ON CONFLICT (token) DO NOTHING`,
-      [
-        item.roomId,
-        SAMPLE_NAMES[index % SAMPLE_NAMES.length],
-        startAt,
-        startAt + item.minutes * MINUTE,
-        item.status,
-        token,
-        startAt - 2 * HOUR,
-        checkedInAt,
-        releasedAt,
-      ],
-    );
-  }
-
+    return [
+      item.roomId,
+      SAMPLE_NAMES[index % SAMPLE_NAMES.length],
+      startAt,
+      startAt + item.minutes * MINUTE,
+      item.status,
+      token,
+      startAt - 2 * HOUR,
+      checkedInAt,
+      releasedAt,
+    ];
+  });
+  await query(
+    `INSERT INTO bookings
+       (room_id, user_name, start_at, end_at, status, token, created_at, checked_in_at, released_at)
+     VALUES ${bookingValues}
+     ON CONFLICT (token) DO NOTHING`,
+    bookingParameters,
+  );
 }

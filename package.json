@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
   "description": "SmartRoom — ระบบจองห้องติวหนังสือที่รู้สถานะห้องจากการใช้งานจริง (Bun + Neon Postgres)",
   "scripts": {
     "build": "bun ./scripts/build.ts",
