@@ -1,0 +1,21 @@
+# dependencies
+node_modules/
+
+# local secrets and Vercel project settings
+.env
+.env.*
+!.env.example
+.vercel/
+
+# build output ของฝั่ง client (สร้างใหม่ได้ด้วย bun run build)
+public/
+
+# ฐานข้อมูลและไฟล์ runtime local (ไม่ควร commit)
+data/
+
+# ไฟล์ชั่วคราว
+*.log
+.DS_Store
+
+# ไบนารี tunnel ที่ใช้ชั่วคราว
+tools/
