@@ -20,3 +20,6 @@ data/
 
 # ไบนารี tunnel ที่ใช้ชั่วคราว
 tools/
+
+.vercel
+.env*
