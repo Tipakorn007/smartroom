@@ -1,7 +1,5 @@
 /**
- * แผนผังห้องแยกตามชั้น
- * การ์ดแต่ละใบบอกสถานะด้วย "ไอคอน + ข้อความ + สี" พร้อมนับถอยหลังสำหรับห้องที่รอเช็กอิน
- * เพื่อให้คนที่มองสีไม่ออกก็ยังเข้าใจสถานะได้
+ * Floor selector and room availability dashboard.
  */
 
 import type { QuietLevel, RoomStatus, RoomView } from "../../shared/types";
@@ -10,13 +8,7 @@ import { el, formatClock, formatCountdown } from "../ui";
 const STATUS_LABEL: Record<RoomStatus, string> = {
   available: "ว่าง",
   in_use: "กำลังใช้งาน",
-  pending: "จองแล้วรอเช็กอิน",
-};
-
-const STATUS_ICON: Record<RoomStatus, string> = {
-  available: "✓",
-  in_use: "●",
-  pending: "⏳",
+  pending: "รอเช็กอิน",
 };
 
 const QUIET_LABEL: Record<QuietLevel, string> = {
@@ -36,163 +28,187 @@ export function renderRoomsView(
   activeFloor: number,
   handlers: RoomsViewHandlers,
 ): void {
-  const heading = el("div", { class: "section-heading" }, [
-    el("div", {}, [
-      el("h2", { text: "แผนผังห้องติว" }),
+  const floors = [...new Set(rooms.map((room) => room.floor))].sort((a, b) => a - b);
+  const roomsOnFloor = rooms.filter((room) => room.floor === activeFloor);
+  const availableCount = roomsOnFloor.filter((room) => room.status === "available").length;
+  const inUseCount = roomsOnFloor.filter((room) => room.status === "in_use").length;
+  const pendingCount = roomsOnFloor.filter((room) => room.status === "pending").length;
+
+  const heading = el("section", { class: "rooms-hero" }, [
+    el("div", { class: "rooms-intro" }, [
+      el("p", { class: "eyebrow", text: `อาคารเรียนรวม · ชั้น ${activeFloor}` }),
+      el("h2", { text: "ห้องไหนว่างตอนนี้" }),
       el("p", {
         class: "muted",
-        text: "สถานะห้องอัปเดตอัตโนมัติทุก 10 วินาที",
+        text: "ทุกห้องนับสถานะจากการจองจริง ถ้าไม่มีคนเช็กอินภายใน 15 นาที ห้องจะกลับมาว่างให้คนอื่นจองทันที",
       }),
+    ]),
+    el("div", { class: "room-kpis", attrs: { "aria-label": "สรุปสถานะห้องในชั้นนี้" } }, [
+      kpi("ว่าง", `${availableCount}/${roomsOnFloor.length}`, "ห้อง", "available"),
+      kpi("กำลังใช้", String(inUseCount), "ห้อง", "in_use"),
+      kpi("รอเช็กอิน", String(pendingCount), "ห้อง", "pending"),
     ]),
   ]);
 
-  const floors = [...new Set(rooms.map((room) => room.floor))].sort((a, b) => a - b);
-  const floorTabs = el("div", {
-    class: "floor-tabs",
+  const floorPicker = el("nav", {
+    class: "floor-picker",
     attrs: { role: "tablist", "aria-label": "เลือกชั้นของอาคาร" },
   });
-
+  floorPicker.append(el("p", { class: "eyebrow floor-picker-label", text: "ชั้น" }));
   for (const floor of floors) {
-    const roomsOnFloor = rooms.filter((room) => room.floor === floor);
-    const availableCount = roomsOnFloor.filter((room) => room.status === "available").length;
+    const floorRooms = rooms.filter((room) => room.floor === floor);
+    const freeCount = floorRooms.filter((room) => room.status === "available").length;
     const button = el(
       "button",
       {
-        class: `floor-tab${floor === activeFloor ? " is-active" : ""}`,
+        class: `floor-option${floor === activeFloor ? " is-active" : ""}`,
         type: "button",
-        attrs: { role: "tab", "aria-selected": String(floor === activeFloor) },
+        attrs: {
+          role: "tab",
+          "aria-selected": String(floor === activeFloor),
+        },
       },
       [
         el("span", { text: `ชั้น ${floor}` }),
-        el("span", {
-          class: "floor-count",
-          text: `ว่าง ${availableCount}/${roomsOnFloor.length}`,
-        }),
+        el("span", { class: "floor-option-count", text: `${freeCount}/${floorRooms.length}` }),
       ],
     );
     button.addEventListener("click", () => handlers.onSelectFloor(floor));
-    floorTabs.append(button);
+    floorPicker.append(button);
   }
+  floorPicker.append(buildLegend());
 
-  const grid = el("div", { class: "room-grid" });
-  const roomsOnFloor = rooms.filter((room) => room.floor === activeFloor);
+  const table = el("section", { class: "room-table", attrs: { "aria-label": `ห้องชั้น ${activeFloor}` } });
+  table.append(
+    el("div", { class: "room-table-head", attrs: { "aria-hidden": "true" } }, [
+      el("span", { text: "ห้อง" }),
+      el("span", { text: "คุณสมบัติ" }),
+      el("span", { text: "สถานะ" }),
+      el("span", { text: "" }),
+    ]),
+  );
   for (const room of roomsOnFloor) {
-    grid.append(buildRoomCard(room, handlers.onBook));
+    table.append(buildRoomRow(room, handlers.onBook));
   }
-
-  container.append(heading, floorTabs, buildLegend(), grid);
 
   if (roomsOnFloor.length === 0) {
-    container.append(el("p", { class: "empty muted", text: "ยังไม่มีห้องในชั้นนี้" }));
+    table.append(el("p", { class: "empty muted", text: "ยังไม่มีห้องในชั้นนี้" }));
   }
+
+  container.replaceChildren(
+    heading,
+    el("div", { class: "rooms-layout" }, [floorPicker, table]),
+  );
 }
 
-/** คำอธิบายสัญลักษณ์ ใช้ชุดสี/ข้อความเดียวกับการ์ดจริง */
+function kpi(
+  label: string,
+  value: string,
+  unit: string,
+  status: RoomStatus,
+): HTMLElement {
+  return el("div", { class: `room-kpi room-kpi-${status}` }, [
+    el("span", { class: "room-kpi-label", text: label }),
+    el("strong", { class: "room-kpi-value", text: value }),
+    el("span", { class: "room-kpi-unit", text: unit }),
+  ]);
+}
+
 function buildLegend(): HTMLElement {
-  const legend = el("div", { class: "legend", attrs: { "aria-label": "คำอธิบายสถานะห้อง" } });
-  const statuses: RoomStatus[] = ["available", "in_use", "pending"];
-  for (const status of statuses) {
+  const legend = el("div", { class: "room-legend", attrs: { "aria-label": "คำอธิบายสถานะห้อง" } });
+  for (const status of ["available", "in_use", "pending"] as const) {
     legend.append(
-      el("span", { class: "legend-item" }, [
-        el("span", { class: `chip chip-${status}` }, [
-          el("span", { class: "chip-icon", text: STATUS_ICON[status], attrs: { "aria-hidden": "true" } }),
-          el("span", { text: STATUS_LABEL[status] }),
-        ]),
+      el("div", { class: "room-legend-item" }, [
+        el("span", {
+          class: `status-dot status-dot-${status}`,
+          attrs: { "aria-hidden": "true" },
+        }),
+        el("span", { text: STATUS_LABEL[status] }),
       ]),
     );
   }
   return legend;
 }
 
-/** การ์ดห้องหนึ่งใบ */
-function buildRoomCard(room: RoomView, onBook: (room: RoomView) => void): HTMLElement {
-  const card = el("article", { class: `room-card status-${room.status}` }, [
-    el("header", { class: "room-card-head" }, [
-      el("div", {}, [
-        el("h3", { text: room.name }),
-        el("p", { class: "muted small", text: `ชั้น ${room.floor} · จุ ${room.capacity} คน` }),
-      ]),
-      buildStatusChip(room),
+function buildRoomRow(room: RoomView, onBook: (room: RoomView) => void): HTMLElement {
+  const features = el("div", { class: "room-features" }, [
+    feature("ปลั๊กไฟ", room.hasPower),
+    feature("ไวท์บอร์ด", room.hasWhiteboard),
+    el("span", { class: "room-feature quiet-feature", text: QUIET_LABEL[room.quietLevel] }),
+  ]);
+
+  const children: HTMLElement[] = [
+    el("div", { class: "room-name" }, [
+      el("strong", { text: room.name }),
+      el("span", { class: "muted small", text: `จุ ${room.capacity} คน` }),
     ]),
-    buildFeatureList(room),
-    buildRoomState(room),
-  ]);
-
-  // ปุ่มจองมีเฉพาะห้องที่ว่างจริงเท่านั้น
-  if (room.status === "available") {
-    const button = el("button", { class: "button primary block", type: "button", text: "จองห้องนี้" });
-    button.addEventListener("click", () => onBook(room));
-    card.append(button);
-  }
-
-  return card;
-}
-
-/** ป้ายสถานะ: ไอคอน + ข้อความ (+ นาฬิกานับถอยหลังถ้ารอเช็กอิน) */
-function buildStatusChip(room: RoomView): HTMLElement {
-  const chip = el("span", { class: `chip chip-${room.status}` }, [
-    el("span", { class: "chip-icon", text: STATUS_ICON[room.status], attrs: { "aria-hidden": "true" } }),
-    el("span", { text: STATUS_LABEL[room.status] }),
-  ]);
-
-  if (room.status === "pending" && room.checkinDeadline !== null) {
-    chip.append(
-      el("span", {
-        class: "countdown",
-        attrs: { "data-deadline": String(room.checkinDeadline) },
-        text: `อีก ${formatCountdown(room.checkinDeadline - Date.now())}`,
-      }),
-    );
-  }
-
-  return chip;
-}
-
-/** คุณสมบัติห้อง: ของที่ไม่มีก็แสดงแบบขีดฆ่า ไม่ใช่ซ่อนหายไป */
-function buildFeatureList(room: RoomView): HTMLElement {
-  const features: Array<{ label: string; present: boolean }> = [
-    { label: "ปลั๊กไฟ", present: room.hasPower },
-    { label: "ไวท์บอร์ด", present: room.hasWhiteboard },
+    features,
+    buildRoomStatus(room),
   ];
 
-  const list = el("ul", { class: "feature-list" });
-  for (const feature of features) {
-    list.append(
-      el("li", {
-        class: `feature ${feature.present ? "is-present" : "is-absent"}`,
-        text: `${feature.present ? "✓" : "—"} ${feature.label}`,
+  if (room.status === "available") {
+    const button = el("button", {
+      class: "button primary room-book-button",
+      type: "button",
+      text: "จอง",
+      attrs: { "aria-label": `จองห้อง ${room.name}` },
+    });
+    button.addEventListener("click", () => onBook(room));
+    children.push(button);
+  } else {
+    children.push(el("span", { class: "room-book-placeholder" }));
+  }
+
+  return el("article", { class: `room-row status-${room.status}` }, children);
+}
+
+function feature(label: string, present: boolean): HTMLElement {
+  return el("span", {
+    class: `room-feature${present ? " is-present" : " is-absent"}`,
+    text: `${present ? "✓" : "—"} ${label}`,
+  });
+}
+
+function buildRoomStatus(room: RoomView): HTMLElement {
+  const booking = room.currentBooking;
+  const statusContent: HTMLElement[] = [
+    el("div", { class: `room-status-label status-text-${room.status}` }, [
+      el("span", {
+        class: `status-dot status-dot-${room.status}`,
+        attrs: { "aria-hidden": "true" },
+      }),
+      el("span", { text: STATUS_LABEL[room.status] }),
+    ]),
+  ];
+
+  if (room.status === "available") {
+    statusContent.push(el("span", { class: "room-status-detail", text: "จองได้เลยตอนนี้" }));
+  } else if (!booking) {
+    statusContent.push(el("span", { class: "room-status-detail", text: "ไม่พบข้อมูลการจอง" }));
+  } else if (room.status === "pending") {
+    statusContent.push(
+      el("span", {
+        class: "room-status-detail",
+        text: `จองโดย ${booking.userName} · เริ่ม ${formatClock(booking.startAt)} น.`,
+      }),
+    );
+    if (room.checkinDeadline !== null) {
+      statusContent.push(
+        el("span", {
+          class: "room-status-countdown",
+          attrs: { "data-deadline": String(room.checkinDeadline) },
+          text: `เหลือ ${formatCountdown(room.checkinDeadline - Date.now())}`,
+        }),
+      );
+    }
+  } else {
+    statusContent.push(
+      el("span", {
+        class: "room-status-detail",
+        text: `ใช้โดย ${booking.userName} · ถึง ${formatClock(booking.endAt)} น.`,
       }),
     );
   }
-  list.append(
-    el("li", {
-      class: "feature is-present",
-      text: `🔈 ${QUIET_LABEL[room.quietLevel]}`,
-    }),
-  );
-  return list;
-}
 
-/** บรรทัดอธิบายว่าเกิดอะไรขึ้นกับห้องตอนนี้ */
-function buildRoomState(room: RoomView): HTMLElement {
-  if (room.status === "available") {
-    return el("p", { class: "room-state", text: "ห้องว่าง จองได้เลยตอนนี้" });
-  }
-
-  const booking = room.currentBooking;
-  if (!booking) {
-    return el("p", { class: "room-state", text: "ไม่พบข้อมูลการจอง" });
-  }
-
-  if (room.status === "pending") {
-    return el("p", {
-      class: "room-state",
-      text: `จองโดย ${booking.userName} · เริ่ม ${formatClock(booking.startAt)} น.`,
-    });
-  }
-
-  return el("p", {
-    class: "room-state",
-    text: `ใช้โดย ${booking.userName} · ถึง ${formatClock(booking.endAt)} น.`,
-  });
+  return el("div", { class: "room-status" }, statusContent);
 }

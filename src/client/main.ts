@@ -98,7 +98,7 @@ function buildShell(root: HTMLElement): void {
         el("span", { class: "brand-mark", text: "SR", attrs: { "aria-hidden": "true" } }),
         el("div", { class: "brand-text" }, [
           el("h1", { text: "SmartRoom" }),
-          el("p", { text: "จองห้องติวที่รู้สถานะจริง" }),
+          el("p", { text: "ห้องติว · อาคารเรียนรวม" }),
         ]),
       ]),
       nav,
