@@ -22,8 +22,20 @@ export async function getStats(now: number = Date.now()): Promise<StatsResponse>
     peakHours,
     leastUsedRooms,
   ] = await Promise.all([
-    countRows("SELECT COUNT(*) AS value FROM bookings"),
-    countRows("SELECT COUNT(*) AS value FROM bookings WHERE status = 'released'"),
+    countRows(
+      `SELECT COUNT(*) AS value FROM bookings b
+       WHERE NOT EXISTS (
+         SELECT 1 FROM waitlist w
+         WHERE w.booking_id = b.id AND w.status IN ('offered', 'expired', 'cancelled')
+       )`,
+    ),
+    countRows(
+      `SELECT COUNT(*) AS value FROM bookings b
+       WHERE b.status = 'released' AND NOT EXISTS (
+         SELECT 1 FROM waitlist w
+         WHERE w.booking_id = b.id AND w.status IN ('offered', 'expired', 'cancelled')
+       )`,
+    ),
     countRows("SELECT COUNT(*) AS value FROM bookings WHERE checked_in_at IS NOT NULL"),
     countRows("SELECT COUNT(*) AS value FROM rooms"),
     listRoomViews(now),
@@ -31,6 +43,10 @@ export async function getStats(now: number = Date.now()): Promise<StatsResponse>
       `SELECT EXTRACT(HOUR FROM to_timestamp(start_at / 1000.0) AT TIME ZONE 'Asia/Bangkok')::integer AS hour,
               COUNT(*)::integer AS bookings
        FROM bookings
+       WHERE NOT EXISTS (
+         SELECT 1 FROM waitlist w
+         WHERE w.booking_id = bookings.id AND w.status IN ('offered', 'expired', 'cancelled')
+       )
        GROUP BY hour
        ORDER BY bookings DESC, hour ASC
        LIMIT 3`,

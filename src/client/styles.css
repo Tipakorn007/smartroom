@@ -1056,6 +1056,51 @@ dialog.modal::backdrop {
   background: var(--pending);
 }
 
+.status-dot-offered {
+  background: var(--primary);
+}
+
+.live-notices {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.live-notice {
+  display: grid;
+  gap: 0.65rem;
+  border-left: 4px solid var(--primary);
+}
+
+.live-notice.presence-reminder {
+  border-left-color: var(--inuse);
+}
+
+.live-notice h2,
+.live-notice h3 {
+  margin: 0;
+  font-size: 1.08rem;
+}
+
+.live-notice p {
+  color: var(--text-muted);
+}
+
+.live-notice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.live-notice-actions .button {
+  min-height: 44px;
+}
+
+.presence-prompt {
+  display: grid;
+  gap: 0.45rem;
+}
+
 .room-table {
   overflow: hidden;
   border: 1px solid var(--border);
@@ -1140,6 +1185,10 @@ dialog.modal::backdrop {
 
 .status-text-pending {
   color: var(--pending);
+}
+
+.status-text-offered {
+  color: var(--primary);
 }
 
 .room-status-detail,
@@ -1489,9 +1538,18 @@ dialog.modal::backdrop {
     border-left-color: var(--pending);
   }
 
+  .room-row.status-offered {
+    border-left-color: var(--primary);
+  }
+
   .room-book-button {
     min-width: 4rem;
     min-height: 44px;
+  }
+
+  .live-notice-actions {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .site-footer {

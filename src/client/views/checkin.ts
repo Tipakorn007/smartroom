@@ -3,8 +3,11 @@
  * หน้านี้เป็นหน้าเดียวที่อยู่นอก shell หลัก เพราะผู้ใช้อาจเปิดจากมือถือตอนเดินมาถึงหน้าห้อง
  */
 
-import { CHECKIN_WINDOW_MS } from "../../shared/constants";
-import type { BookingStatus, BookingWithRoom } from "../../shared/types";
+import {
+  CHECKIN_WINDOW_MS,
+  PRESENCE_REMINDER_WINDOW_MS,
+} from "../../shared/constants";
+import type { BookingLiveSnapshot, BookingStatus } from "../../shared/types";
 import { api, ApiError } from "../api";
 import { el, formatClock, formatCountdown, formatDateTime, showToast } from "../ui";
 
@@ -71,9 +74,36 @@ export async function renderCheckinPage(root: HTMLElement, token: string): Promi
 
   card.append(el("p", { class: "muted", text: "กำลังโหลดข้อมูลการจอง…" }));
 
+  let lastSnapshotKey = "";
+  const renderSnapshot = (data: BookingLiveSnapshot): void => {
+    const remaining = data.booking.endAt - Date.now();
+    const reminderVisible =
+      data.booking.status === "active" &&
+      remaining > 0 &&
+      remaining <= PRESENCE_REMINDER_WINDOW_MS;
+    const key = [
+      data.booking.status,
+      data.booking.startAt,
+      data.booking.endAt,
+      data.waitlistCount,
+      reminderVisible,
+    ].join(":");
+    if (key === lastSnapshotKey) return;
+    lastSnapshotKey = key;
+    showBooking(card, data, token, renderSnapshot);
+  };
+
   try {
-    const data = await api.booking(token);
-    showBooking(card, data, token);
+    renderSnapshot(await api.bookingLive(token));
+    const source = new EventSource(`/api/bookings/${encodeURIComponent(token)}/events`);
+    source.addEventListener("message", (event: MessageEvent<string>) => {
+      try {
+        renderSnapshot(JSON.parse(event.data) as BookingLiveSnapshot);
+      } catch (error) {
+        console.error("[client] อ่านสถานะการจองแบบ live ไม่สำเร็จ:", error);
+      }
+    });
+    window.addEventListener("pagehide", () => source.close(), { once: true });
   } catch (error) {
     card.replaceChildren(
       el("h2", { text: "เปิดการจองนี้ไม่ได้" }),
@@ -84,7 +114,12 @@ export async function renderCheckinPage(root: HTMLElement, token: string): Promi
 }
 
 /** วาดข้อมูลการจอง + ปุ่มเช็กอิน (เรียกซ้ำได้หลังเช็กอินสำเร็จ) */
-function showBooking(card: HTMLElement, data: BookingWithRoom, token: string): void {
+function showBooking(
+  card: HTMLElement,
+  data: BookingLiveSnapshot,
+  token: string,
+  onUpdated: (snapshot: BookingLiveSnapshot) => void,
+): void {
   const { booking, room } = data;
   const deadline = booking.startAt + CHECKIN_WINDOW_MS;
 
@@ -130,6 +165,15 @@ function showBooking(card: HTMLElement, data: BookingWithRoom, token: string): v
     void runCheckIn(checkInButton);
   });
 
+  const leaveButton = el("button", {
+    class: "button ghost block",
+    type: "button",
+    text: "ออกจากห้องก่อนเวลา",
+  });
+  leaveButton.addEventListener("click", () => {
+    void runLeave(leaveButton);
+  });
+
   async function runCheckIn(button: HTMLButtonElement): Promise<void> {
     button.disabled = true;
     try {
@@ -138,7 +182,7 @@ function showBooking(card: HTMLElement, data: BookingWithRoom, token: string): v
         result.alreadyCheckedIn ? "การจองนี้เช็กอินไว้แล้ว" : `เช็กอินห้อง ${result.room.name} สำเร็จ`,
         "info",
       );
-      showBooking(card, { booking: result.booking, room: result.room }, token);
+      onUpdated({ ...data, booking: result.booking, room: result.room });
     } catch (error) {
       button.disabled = false;
       // แสดงข้อความจริงจาก server (เช่น "เลยเวลาเช็กอิน 15 นาทีแล้ว")
@@ -146,6 +190,41 @@ function showBooking(card: HTMLElement, data: BookingWithRoom, token: string): v
         el("p", {
           class: "alert",
           text: error instanceof ApiError ? error.message : "เช็กอินไม่สำเร็จ กรุณาลองใหม่",
+        }),
+      );
+    }
+  }
+
+  async function runLeave(button: HTMLButtonElement): Promise<void> {
+    if (!window.confirm("ยืนยันออกจากห้องและปล่อยให้ผู้ใช้ในคิวถัดไปหรือไม่?")) return;
+    button.disabled = true;
+    try {
+      const result = await api.leaveBooking(token);
+      showToast("ปล่อยห้องแล้ว ขอบคุณที่แจ้งสถานะ");
+      onUpdated({ ...data, booking: result.booking });
+    } catch (error) {
+      button.disabled = false;
+      card.prepend(
+        el("p", {
+          class: "alert",
+          text: error instanceof ApiError ? error.message : "ออกจากห้องไม่สำเร็จ กรุณาลองใหม่",
+        }),
+      );
+    }
+  }
+
+  async function runExtend(button: HTMLButtonElement): Promise<void> {
+    button.disabled = true;
+    try {
+      const result = await api.extendBooking(token, booking.endAt);
+      showToast("ต่อเวลาใช้งานอีก 30 นาทีแล้ว");
+      onUpdated({ ...data, booking: result.booking });
+    } catch (error) {
+      button.disabled = false;
+      card.prepend(
+        el("p", {
+          class: "alert",
+          text: error instanceof ApiError ? error.message : "ต่อเวลาไม่สำเร็จ กรุณาลองใหม่",
         }),
       );
     }
@@ -168,13 +247,36 @@ function showBooking(card: HTMLElement, data: BookingWithRoom, token: string): v
   // ให้กดเช็กอินได้เฉพาะการจองที่ยัง pending (server ตรวจซ้ำอีกชั้นเสมอ)
   if (booking.status === "pending") {
     children.push(checkInButton);
+  } else if (booking.status === "active") {
+    const remaining = booking.endAt - Date.now();
+    if (remaining > 0 && remaining <= PRESENCE_REMINDER_WINDOW_MS) {
+      const extendButton = el("button", {
+        class: "button primary block",
+        type: "button",
+        text: "ยืนยันต่อเวลา 30 นาที",
+        disabled: data.waitlistCount > 0,
+      });
+      extendButton.addEventListener("click", () => void runExtend(extendButton));
+      children.push(
+        el("section", { class: "alert presence-prompt", attrs: { role: "status" } }, [
+          el("strong", { text: "ยังใช้ห้องอยู่ไหม?" }),
+          el("p", {
+            text: data.waitlistCount > 0
+              ? `มีคนรอคิว ${data.waitlistCount} คน จึงต่อเวลาไม่ได้`
+              : "หากไม่มีผู้ใช้รอคิว สามารถต่อเวลาได้ครั้งละ 30 นาที",
+          }),
+          extendButton,
+        ]),
+      );
+    }
+    children.push(leaveButton);
   }
   children.push(backLink());
 
   card.replaceChildren(...children);
 }
 
-function buildMessage(data: BookingWithRoom): string {
+function buildMessage(data: BookingLiveSnapshot): string {
   switch (data.booking.status) {
     case "pending":
       return "กดปุ่มด้านล่างเพื่อยืนยันว่าคุณมาใช้ห้องจริง ระบบจึงจะเริ่มนับเวลาใช้งาน";

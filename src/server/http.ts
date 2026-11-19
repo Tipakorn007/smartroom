@@ -28,6 +28,17 @@ export function json(data: unknown, status = 200): Response {
   });
 }
 
+/** A short-lived SSE snapshot; EventSource reconnects for the next update. */
+export function sse(data: unknown): Response {
+  return new Response(`retry: 5000\ndata: ${JSON.stringify(data)}\n\n`, {
+    headers: {
+      "content-type": "text/event-stream; charset=utf-8",
+      "cache-control": "no-cache, no-store, no-transform",
+      "x-accel-buffering": "no",
+    },
+  });
+}
+
 /**
  * อ่าน body เป็น JSON แบบตรวจชนิดให้แล้ว
  * ถ้า client ส่ง JSON เสียหรือส่ง array มา จะได้ 400 พร้อมข้อความภาษาไทย

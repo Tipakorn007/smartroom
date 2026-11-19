@@ -2,13 +2,14 @@
  * Floor selector and room availability dashboard.
  */
 
-import type { QuietLevel, RoomStatus, RoomView } from "../../shared/types";
+import type { QuietLevel, RoomStatus, RoomView, WaitlistEntry } from "../../shared/types";
 import { el, formatClock, formatCountdown } from "../ui";
 
 const STATUS_LABEL: Record<RoomStatus, string> = {
   available: "ว่าง",
   in_use: "กำลังใช้งาน",
   pending: "รอเช็กอิน",
+  offered: "กำลังเสนอคิว",
 };
 
 const QUIET_LABEL: Record<QuietLevel, string> = {
@@ -20,12 +21,16 @@ const QUIET_LABEL: Record<QuietLevel, string> = {
 export interface RoomsViewHandlers {
   onSelectFloor: (floor: number) => void;
   onBook: (room: RoomView) => void;
+  onJoinWaitlist: (room: RoomView) => void;
+  onAcceptWaitlist: (entry: WaitlistEntry) => void;
+  onCancelWaitlist: (entry: WaitlistEntry) => void;
 }
 
 export function renderRoomsView(
   container: HTMLElement,
   rooms: RoomView[],
   activeFloor: number,
+  waitlists: WaitlistEntry[],
   handlers: RoomsViewHandlers,
 ): void {
   const floors = [...new Set(rooms.map((room) => room.floor))].sort((a, b) => a - b);
@@ -88,7 +93,8 @@ export function renderRoomsView(
     ]),
   );
   for (const room of roomsOnFloor) {
-    table.append(buildRoomRow(room, handlers.onBook));
+    const entry = waitlists.find((item) => item.roomId === room.id);
+    table.append(buildRoomRow(room, entry, handlers));
   }
 
   if (roomsOnFloor.length === 0) {
@@ -116,7 +122,7 @@ function kpi(
 
 function buildLegend(): HTMLElement {
   const legend = el("div", { class: "room-legend", attrs: { "aria-label": "คำอธิบายสถานะห้อง" } });
-  for (const status of ["available", "in_use", "pending"] as const) {
+  for (const status of ["available", "in_use", "pending", "offered"] as const) {
     legend.append(
       el("div", { class: "room-legend-item" }, [
         el("span", {
@@ -130,7 +136,11 @@ function buildLegend(): HTMLElement {
   return legend;
 }
 
-function buildRoomRow(room: RoomView, onBook: (room: RoomView) => void): HTMLElement {
+function buildRoomRow(
+  room: RoomView,
+  entry: WaitlistEntry | undefined,
+  handlers: RoomsViewHandlers,
+): HTMLElement {
   const features = el("div", { class: "room-features" }, [
     feature("ปลั๊กไฟ", room.hasPower),
     feature("ไวท์บอร์ด", room.hasWhiteboard),
@@ -143,20 +153,45 @@ function buildRoomRow(room: RoomView, onBook: (room: RoomView) => void): HTMLEle
       el("span", { class: "muted small", text: `จุ ${room.capacity} คน` }),
     ]),
     features,
-    buildRoomStatus(room),
+    buildRoomStatus(room, entry),
   ];
 
-  if (room.status === "available") {
+  if (entry?.status === "offered") {
+    const acceptButton = el("button", {
+      class: "button primary room-book-button",
+      type: "button",
+      text: "รับข้อเสนอ",
+      attrs: { "aria-label": `รับข้อเสนอห้อง ${room.name}` },
+    });
+    acceptButton.addEventListener("click", () => handlers.onAcceptWaitlist(entry));
+    children.push(acceptButton);
+  } else if (entry?.status === "waiting") {
+    const cancelButton = el("button", {
+      class: "button ghost room-book-button",
+      type: "button",
+      text: "ออกจากคิว",
+      attrs: { "aria-label": `ออกจากคิวห้อง ${room.name}` },
+    });
+    cancelButton.addEventListener("click", () => handlers.onCancelWaitlist(entry));
+    children.push(cancelButton);
+  } else if (room.status === "available" && room.waitlistCount === 0) {
     const button = el("button", {
       class: "button primary room-book-button",
       type: "button",
       text: "จอง",
       attrs: { "aria-label": `จองห้อง ${room.name}` },
     });
-    button.addEventListener("click", () => onBook(room));
+    button.addEventListener("click", () => handlers.onBook(room));
     children.push(button);
   } else {
-    children.push(el("span", { class: "room-book-placeholder" }));
+    const button = el("button", {
+      class: "button ghost room-book-button",
+      type: "button",
+      text: "เข้าคิว",
+      attrs: { "aria-label": `เข้าคิวห้อง ${room.name}` },
+    });
+    button.addEventListener("click", () => handlers.onJoinWaitlist(room));
+    children.push(button);
   }
 
   return el("article", { class: `room-row status-${room.status}` }, children);
@@ -169,7 +204,7 @@ function feature(label: string, present: boolean): HTMLElement {
   });
 }
 
-function buildRoomStatus(room: RoomView): HTMLElement {
+function buildRoomStatus(room: RoomView, entry: WaitlistEntry | undefined): HTMLElement {
   const booking = room.currentBooking;
   const statusContent: HTMLElement[] = [
     el("div", { class: `room-status-label status-text-${room.status}` }, [
@@ -183,6 +218,10 @@ function buildRoomStatus(room: RoomView): HTMLElement {
 
   if (room.status === "available") {
     statusContent.push(el("span", { class: "room-status-detail", text: "จองได้เลยตอนนี้" }));
+  } else if (room.status === "offered") {
+    statusContent.push(
+      el("span", { class: "room-status-detail", text: "กำลังรอผู้ใช้ในคิวตอบรับ" }),
+    );
   } else if (!booking) {
     statusContent.push(el("span", { class: "room-status-detail", text: "ไม่พบข้อมูลการจอง" }));
   } else if (room.status === "pending") {
@@ -207,6 +246,27 @@ function buildRoomStatus(room: RoomView): HTMLElement {
         class: "room-status-detail",
         text: `กำลังใช้งาน · ถึง ${formatClock(booking.endAt)} น.`,
       }),
+    );
+  }
+
+  if (room.waitlistCount > 0) {
+    statusContent.push(
+      el("span", {
+        class: "room-status-detail",
+        text: `คิวรอห้อง ${room.waitlistCount} คน`,
+      }),
+    );
+  }
+  if (entry?.status === "waiting") {
+    statusContent.push(
+      el("span", {
+        class: "room-status-countdown",
+        text: `คุณอยู่คิวที่ ${entry.position ?? 1}`,
+      }),
+    );
+  } else if (entry?.status === "offered") {
+    statusContent.push(
+      el("span", { class: "room-status-countdown", text: "ถึงคิวคุณแล้ว" }),
     );
   }
 

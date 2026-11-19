@@ -7,19 +7,31 @@ import type { CreateBookingResponse, RecommendRequest } from "../shared/types.ts
 import {
   checkIn,
   createBooking,
+  extendBooking,
   findBookingByToken,
+  getBookingLiveSnapshot,
+  leaveBooking,
   releaseExpiredBookings,
 } from "./bookings.ts";
-import { HttpError, json, readJsonBody } from "./http.ts";
+import { HttpError, json, readJsonBody, sse } from "./http.ts";
 import { recommendRooms } from "./recommend.ts";
 import { listRoomViews } from "./rooms.ts";
 import { getStats } from "./stats.ts";
 import {
+  acceptWaitlistOffer,
+  cancelWaitlist,
+  getLiveSnapshot,
+  joinWaitlist,
+} from "./waitlist.ts";
+import {
   validateDuration,
   validateFlag,
   validatePeople,
+  validateRecordId,
   validateRoomId,
   validateToken,
+  validateTimestamp,
+  validateUserId,
   validateUserName,
 } from "./validation.ts";
 
@@ -40,9 +52,18 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
     return json(await getStats());
   }
 
+  if ((pathname === "/api/live" || pathname === "/api/events") && method === "GET") {
+    const userId = validateUserId(url.searchParams.get("userId"));
+    const now = Date.now();
+    await releaseExpiredBookings(now);
+    const snapshot = await getLiveSnapshot(userId, now);
+    return pathname === "/api/events" ? sse(snapshot) : json(snapshot);
+  }
+
   if (pathname === "/api/bookings" && method === "POST") {
     const body = await readJsonBody(request);
     const { booking, room } = await createBooking({
+      userId: body.userId === undefined ? null : validateUserId(body.userId),
       roomId: validateRoomId(body.roomId),
       userName: validateUserName(body.userName),
       durationMinutes: validateDuration(body.durationMinutes),
@@ -57,6 +78,41 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
     });
     const response: CreateBookingResponse = { booking, room, qrDataUrl, checkinUrl };
     return json(response, 201);
+  }
+
+  if (pathname === "/api/waitlist" && method === "POST") {
+    const body = await readJsonBody(request);
+    await releaseExpiredBookings(Date.now());
+    const entry = await joinWaitlist({
+      userId: validateUserId(body.userId),
+      roomId: validateRoomId(body.roomId),
+      userName: validateUserName(body.userName),
+      durationMinutes: validateDuration(body.durationMinutes),
+    });
+    return json(entry, 201);
+  }
+
+  const waitlistMatch = pathname.match(/^\/api\/waitlist\/([^/]+)\/(accept|cancel)$/);
+  if (waitlistMatch && method === "POST") {
+    const waitlistId = validateRecordId(waitlistMatch[1]);
+    const body = await readJsonBody(request);
+    const userId = validateUserId(body.userId);
+    await releaseExpiredBookings(Date.now());
+    if (waitlistMatch[2] === "cancel") {
+      await cancelWaitlist(waitlistId, userId);
+      return json({ cancelled: true });
+    }
+
+    const { booking, room } = await acceptWaitlistOffer(waitlistId, userId, Date.now());
+    const checkinUrl = `${url.origin}/checkin/${booking.token}`;
+    const qrDataUrl = await QRCode.toDataURL(checkinUrl, {
+      width: 320,
+      margin: 1,
+      errorCorrectionLevel: "M",
+      color: { dark: "#0f172a", light: "#ffffff" },
+    });
+    const response: CreateBookingResponse = { booking, room, qrDataUrl, checkinUrl };
+    return json(response);
   }
 
   if (pathname === "/api/recommend" && method === "POST") {
@@ -78,6 +134,25 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
     const token = validateToken(checkinMatch[1]);
     await releaseExpiredBookings(Date.now());
     return json(await checkIn(token));
+  }
+
+  const bookingLiveMatch = pathname.match(/^\/api\/bookings\/([^/]+)\/(live|events)$/);
+  if (bookingLiveMatch && method === "GET") {
+    const token = validateToken(bookingLiveMatch[1]);
+    await releaseExpiredBookings(Date.now());
+    const snapshot = await getBookingLiveSnapshot(token);
+    return bookingLiveMatch[2] === "events" ? sse(snapshot) : json(snapshot);
+  }
+
+  const bookingActionMatch = pathname.match(/^\/api\/bookings\/([^/]+)\/(extend|leave)$/);
+  if (bookingActionMatch && method === "POST") {
+    const token = validateToken(bookingActionMatch[1]);
+    if (bookingActionMatch[2] === "leave") {
+      return json({ booking: await leaveBooking(token) });
+    }
+    const body = await readJsonBody(request);
+    const booking = await extendBooking(token, validateTimestamp(body.expectedEndAt));
+    return json({ booking });
   }
 
   const bookingMatch = pathname.match(/^\/api\/bookings\/([^/]+)$/);

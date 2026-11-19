@@ -4,14 +4,18 @@
  */
 
 import type {
+  Booking,
+  BookingLiveSnapshot,
   BookingWithRoom,
   CheckInResponse,
   CreateBookingRequest,
   CreateBookingResponse,
+  LiveSnapshot,
   RecommendRequest,
   Recommendation,
   RoomView,
   StatsResponse,
+  WaitlistEntry,
 } from "../shared/types";
 
 export class ApiError extends Error {
@@ -58,6 +62,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  /** ห้อง คิว และการจองของอุปกรณ์นี้ */
+  live(userId: string): Promise<LiveSnapshot> {
+    return request<LiveSnapshot>(`/api/live?userId=${encodeURIComponent(userId)}`);
+  },
+
   /** แผนผังห้อง + สถานะล่าสุด */
   rooms(): Promise<RoomView[]> {
     return request<RoomView[]>("/api/rooms");
@@ -68,6 +77,50 @@ export const api = {
     return request<CreateBookingResponse>("/api/bookings", {
       method: "POST",
       body: JSON.stringify(payload),
+    });
+  },
+
+  /** เข้าคิวห้องที่กำลังถูกใช้งาน */
+  joinWaitlist(payload: {
+    userId: string;
+    roomId: number;
+    userName: string;
+    durationMinutes: number;
+  }): Promise<WaitlistEntry> {
+    return request<WaitlistEntry>("/api/waitlist", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  /** รับข้อเสนอห้องจากคิว */
+  acceptWaitlist(waitlistId: number, userId: string): Promise<CreateBookingResponse> {
+    return request(`/api/waitlist/${waitlistId}/accept`, {
+      method: "POST",
+      body: JSON.stringify({ userId }),
+    });
+  },
+
+  /** ยกเลิกคิวหรือข้ามข้อเสนอ */
+  cancelWaitlist(waitlistId: number, userId: string): Promise<{ cancelled: true }> {
+    return request(`/api/waitlist/${waitlistId}/cancel`, {
+      method: "POST",
+      body: JSON.stringify({ userId }),
+    });
+  },
+
+  /** ต่อเวลาใช้งานอีก 30 นาที */
+  extendBooking(token: string, expectedEndAt: number): Promise<{ booking: Booking }> {
+    return request<{ booking: Booking }>(`/api/bookings/${encodeURIComponent(token)}/extend`, {
+      method: "POST",
+      body: JSON.stringify({ expectedEndAt }),
+    });
+  },
+
+  /** แจ้งออกจากห้องก่อนกำหนด */
+  leaveBooking(token: string): Promise<{ booking: Booking }> {
+    return request<{ booking: Booking }>(`/api/bookings/${encodeURIComponent(token)}/leave`, {
+      method: "POST",
     });
   },
 
@@ -87,6 +140,11 @@ export const api = {
   /** ข้อมูลการจองจาก token (ใช้ในหน้า /checkin/:token) */
   booking(token: string): Promise<BookingWithRoom> {
     return request<BookingWithRoom>(`/api/bookings/${encodeURIComponent(token)}`);
+  },
+
+  /** รายละเอียดการจอง คิวห้อง และสถานะสำหรับหน้าเช็กอินสด */
+  bookingLive(token: string): Promise<BookingLiveSnapshot> {
+    return request<BookingLiveSnapshot>(`/api/bookings/${encodeURIComponent(token)}/live`);
   },
 
   /** เช็กอินด้วย token */

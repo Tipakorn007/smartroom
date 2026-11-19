@@ -14,7 +14,7 @@ export type QuietLevel = "quiet" | "normal" | "group";
  * - pending   = จองแล้วรอเช็กอิน (ยังไม่เช็กอิน)
  * สถานะนี้คำนวณสดจากเวลา ไม่ได้เก็บลงฐานข้อมูล
  */
-export type RoomStatus = "available" | "in_use" | "pending";
+export type RoomStatus = "available" | "in_use" | "pending" | "offered";
 
 /**
  * สถานะของ "การจอง" ที่เก็บในฐานข้อมูล
@@ -52,7 +52,7 @@ export interface Booking {
 
 /** ข้อมูลการจองขั้นต่ำที่แสดงบนแผนผังห้องสาธารณะ */
 export interface CurrentBookingSummary {
-  status: "pending" | "active";
+  status: "pending" | "active" | "offered";
   startAt: number;
   endAt: number;
 }
@@ -63,13 +63,40 @@ export interface RoomView extends Room {
   currentBooking: CurrentBookingSummary | null;
   /** เวลาสุดท้ายที่ยังเช็กอินได้ (เฉพาะสถานะ pending) */
   checkinDeadline: number | null;
+  waitlistCount: number;
 }
 
 /** ข้อมูลที่ client ส่งมาสร้างการจอง */
 export interface CreateBookingRequest {
+  userId: string;
   roomId: number;
   userName: string;
   durationMinutes: number;
+}
+
+export type WaitlistStatus = "waiting" | "offered" | "accepted" | "expired" | "cancelled";
+
+/** คิวของผู้ใช้ปัจจุบัน; slot เก็บระยะเวลาใช้งานที่ขอเป็นนาที */
+export interface WaitlistEntry {
+  id: number;
+  roomId: number;
+  roomName: string;
+  durationMinutes: number;
+  status: WaitlistStatus;
+  createdAt: number;
+  position: number | null;
+  offerExpiresAt: number | null;
+}
+
+/** สถานะที่ส่งให้เบราว์เซอร์ของผู้ใช้แบบไม่ระบุตัวตนรายนี้ */
+export interface LiveSnapshot {
+  rooms: RoomView[];
+  myWaitlists: WaitlistEntry[];
+  myBookings: BookingWithRoom[];
+}
+
+export interface BookingLiveSnapshot extends BookingWithRoom {
+  waitlistCount: number;
 }
 
 /** ผลลัพธ์หลังจองสำเร็จ รวม QR ให้ frontend แสดงเลย */

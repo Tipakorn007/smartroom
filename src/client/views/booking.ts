@@ -18,7 +18,7 @@ const DURATION_LABEL: Record<number, string> = {
  * เปิดหน้าต่างจองของห้องที่เลือก
  * onCreated ถูกเรียกหลังจองสำเร็จ เพื่อให้หน้าหลักดึงข้อมูลใหม่ทันที
  */
-export function openBookingDialog(room: Room, onCreated: () => void): void {
+export function openBookingDialog(room: Room, userId: string, onCreated: () => void): void {
   const dialog = el("dialog", { class: "modal", attrs: { "aria-label": `จองห้อง ${room.name}` } });
   const card = el("div", { class: "modal-card" });
 
@@ -92,6 +92,7 @@ export function openBookingDialog(room: Room, onCreated: () => void): void {
     const selectedDuration = form.querySelector<HTMLInputElement>('input[name="duration"]:checked');
     try {
       const result = await api.createBooking({
+        userId,
         roomId: room.id,
         userName: nameInput.value,
         durationMinutes: Number(selectedDuration?.value ?? "60"),

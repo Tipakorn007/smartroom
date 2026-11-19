@@ -89,3 +89,33 @@ export function validateToken(value: unknown): string {
   }
   return value;
 }
+
+/** ID แบบไม่ระบุตัวตนที่สร้างจาก randomBytes(16) ในเบราว์เซอร์ */
+export function validateUserId(value: unknown): string {
+  if (typeof value !== "string" || !/^[a-f0-9]{32}$/.test(value)) {
+    throw new HttpError(400, "รหัสผู้ใช้ไม่ถูกต้อง กรุณารีโหลดหน้าเว็บ");
+  }
+  return value;
+}
+
+/** ID จาก identity columns ต้องเป็นจำนวนเต็มบวก */
+export function validateRecordId(value: unknown): number {
+  const id = typeof value === "string" ? Number(value) : value;
+  if (typeof id !== "number" || !Number.isSafeInteger(id) || id < 1) {
+    throw new HttpError(400, "รหัสรายการไม่ถูกต้อง");
+  }
+  return id;
+}
+
+/** เวลาใน client ต้องเป็น epoch milliseconds ที่ปลอดภัย */
+export function validateTimestamp(value: unknown): number {
+  const timestamp = typeof value === "string" ? Number(value) : value;
+  if (
+    typeof timestamp !== "number" ||
+    !Number.isSafeInteger(timestamp) ||
+    timestamp < 0
+  ) {
+    throw new HttpError(400, "เวลาไม่ถูกต้อง");
+  }
+  return timestamp;
+}
