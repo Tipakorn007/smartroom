@@ -80,9 +80,9 @@ export async function recommendRooms(request: RecommendRequest, now: number): Pr
 
   return scored
     .sort((a, b) => {
-      if (a.score !== b.score) return a.score - b.score; // คะแนนดีกว่าขึ้นก่อน
+      if (a.score !== b.score) return a.score - b.score;
       if (a.room.capacity !== b.room.capacity) return a.room.capacity - b.room.capacity;
-      return a.room.id - b.room.id; // กันลำดับสลับเมื่อคะแนนเท่ากัน
+      return a.room.id - b.room.id;
     })
     .slice(0, 3);
 }
