@@ -2,6 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "bun run build",
   "outputDirectory": "public",
+  "functions": {
+    "api/index.ts": {
+      "includeFiles": "src/**/*.ts"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/:path*",
