@@ -61,9 +61,9 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font-family: "Noto Sans Thai", "Leelawadee UI", "Tahoma", "Sarabun", system-ui, sans-serif;
+  font-family: "Sarabun", "Noto Sans Thai", "Leelawadee UI", "Tahoma", system-ui, sans-serif;
   font-size: 16px;
-  line-height: 1.6;
+  line-height: 1.65;
   -webkit-font-smoothing: antialiased;
 }
 
