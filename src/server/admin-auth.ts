@@ -32,7 +32,7 @@ function cookieValue(request: Request): string | null {
 
 export function adminSessionValid(request: Request): boolean {
   try {
-    if (!process.env.ADMIN_USERNAME || (process.env.ADMIN_PASSWORD?.length ?? 0) < 12) return false;
+    if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD) return false;
     const value = cookieValue(request);
     if (!value) return false;
     const [expiresAt, provided] = value.split(".");
@@ -57,7 +57,7 @@ export function assertSameOrigin(request: Request): void {
 export function loginAdmin(request: Request, username: unknown, password: unknown): Response {
   const expectedUser = required("ADMIN_USERNAME");
   const expectedPassword = required("ADMIN_PASSWORD");
-  if (expectedPassword.length < 12) throw new HttpError(503, "ADMIN_PASSWORD ต้องยาวอย่างน้อย 12 ตัวอักษร");
+  if (!expectedPassword) throw new HttpError(503, "กรุณาตั้งค่า ADMIN_PASSWORD");
   if (typeof username !== "string" || typeof password !== "string" ||
       !equalSecret(username, expectedUser) || !equalSecret(password, expectedPassword)) {
     throw new HttpError(401, "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
