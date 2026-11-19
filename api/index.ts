@@ -7,3 +7,11 @@ export function GET(request: Request): Promise<Response> {
 export function POST(request: Request): Promise<Response> {
   return handleApi(request);
 }
+
+export function PATCH(request: Request): Promise<Response> {
+  return handleApi(request);
+}
+
+export function DELETE(request: Request): Promise<Response> {
+  return handleApi(request);
+}

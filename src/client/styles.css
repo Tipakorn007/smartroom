@@ -1060,6 +1060,10 @@ dialog.modal::backdrop {
   background: var(--primary);
 }
 
+.status-dot-closed {
+  background: var(--text-muted);
+}
+
 .live-notices {
   display: grid;
   gap: 0.75rem;
@@ -1189,6 +1193,258 @@ dialog.modal::backdrop {
 
 .status-text-offered {
   color: var(--primary);
+}
+
+.status-text-closed {
+  color: var(--text-muted);
+}
+
+.booking-edit-form,
+.room-admin-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.booking-edit-form input,
+.booking-edit-form select,
+.room-admin-form input,
+.room-admin-form select {
+  min-height: 2.65rem;
+  max-width: 100%;
+  padding: 0.55rem 0.7rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  font: inherit;
+}
+
+.room-admin-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-muted);
+}
+
+.room-admin-form,
+.room-admin-card {
+  padding: 1rem;
+}
+
+.admin-page-heading,
+.admin-room-summary,
+.admin-toolbar,
+.admin-room-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.admin-page-heading {
+  margin: 1.5rem 0;
+  flex-wrap: wrap;
+}
+
+.admin-summary {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.admin-summary-item {
+  min-width: 6.5rem;
+  padding: 0.7rem 0.9rem;
+  display: grid;
+  gap: 0.15rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+}
+
+.admin-summary-item strong {
+  font-size: 1.2rem;
+}
+
+.admin-toolbar {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.admin-toolbar > input[type="search"] {
+  flex: 1 1 16rem;
+}
+
+.admin-add-room {
+  position: relative;
+}
+
+.admin-add-room > summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.admin-add-room > summary::-webkit-details-marker,
+.admin-room-item > summary::-webkit-details-marker {
+  display: none;
+}
+
+.admin-add-room[open] > .admin-room-form {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  width: min(32rem, calc(100vw - 2rem));
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 1rem 2.5rem rgb(0 0 0 / 15%);
+}
+
+.admin-room-list {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.admin-room-item {
+  overflow: hidden;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+}
+
+.admin-room-item[hidden] {
+  display: none;
+}
+
+.admin-room-item > summary {
+  padding: 0.9rem 1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.admin-room-identity {
+  display: flex;
+  flex: 1;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
+.admin-state {
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.admin-state.is-open {
+  color: var(--available);
+  background: color-mix(in srgb, var(--available) 12%, transparent);
+}
+
+.admin-state.is-closed {
+  color: var(--text-muted);
+  background: var(--surface-raised, #eef2f5);
+}
+
+.admin-expand {
+  color: var(--primary);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.admin-room-controls,
+.admin-maintenance {
+  padding: 0.85rem 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.admin-room-form,
+.admin-maintenance-form {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.admin-room-form input,
+.admin-room-form select,
+.admin-maintenance-form input,
+.admin-toolbar input,
+.admin-toolbar select,
+.admin-login-form input {
+  min-height: 2.7rem;
+  max-width: 100%;
+  padding: 0.55rem 0.7rem;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  font: inherit;
+}
+
+.admin-room-form input[type="text"] {
+  flex: 1 1 8rem;
+}
+
+.admin-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.admin-maintenance {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.admin-maintenance-form input[type="text"] {
+  flex: 1 1 8rem;
+}
+
+.link-button {
+  padding: 0.25rem 0;
+  color: var(--text-muted);
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.admin-login-form {
+  width: min(100%, 28rem);
+  margin: 4rem auto;
+  padding: 1.5rem;
+}
+
+.admin-login-form input {
+  width: 100%;
+}
+
+.admin-account-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+@media (max-width: 720px) {
+  .admin-room-summary,
+  .admin-room-controls {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .admin-room-identity {
+    flex-direction: column;
+    gap: 0.1rem;
+  }
 }
 
 .room-status-detail,

@@ -3,10 +3,12 @@
  */
 
 import QRCode from "qrcode";
-import type { CreateBookingResponse, RecommendRequest } from "../shared/types.ts";
+import type { CreateBookingResponse, QuietLevel, RecommendRequest } from "../shared/types.ts";
 import {
   checkIn,
+  cancelPendingBooking,
   createBooking,
+  editPendingBooking,
   extendBooking,
   findBookingByToken,
   getBookingLiveSnapshot,
@@ -14,9 +16,12 @@ import {
   releaseExpiredBookings,
 } from "./bookings.ts";
 import { HttpError, json, readJsonBody, sse } from "./http.ts";
+import { assertSameOrigin, adminSessionValid, loginAdmin, logoutAdmin, requireAdmin } from "./admin-auth.ts";
+import { addRoomMaintenance, createManagedRoom, listManagedRooms, removeRoom, removeRoomMaintenance, updateManagedRoom } from "./admin-rooms.ts";
 import { recommendRooms } from "./recommend.ts";
 import { listRoomViews } from "./rooms.ts";
 import { getStats } from "./stats.ts";
+import { getMyHistory } from "./my-history.ts";
 import {
   acceptWaitlistOffer,
   cancelWaitlist,
@@ -41,6 +46,78 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
       ? `/api/${url.searchParams.get("route")}`
       : url.pathname;
   const method = request.method;
+
+  if (pathname === "/api/admin/session" && method === "GET") {
+    return json({ authenticated: adminSessionValid(request) });
+  }
+  if (pathname === "/api/admin/login" && method === "POST") {
+    assertSameOrigin(request);
+    const body = await readJsonBody(request);
+    return loginAdmin(request, body.username, body.password);
+  }
+  if (pathname === "/api/admin/logout" && method === "POST") {
+    assertSameOrigin(request);
+    return logoutAdmin();
+  }
+  if (pathname.startsWith("/api/admin/rooms")) {
+    requireAdmin(request);
+    if (method !== "GET") assertSameOrigin(request);
+    if (pathname === "/api/admin/rooms" && method === "GET") {
+      return json({ rooms: await listManagedRooms() });
+    }
+    if (pathname === "/api/admin/rooms" && method === "POST") {
+      const body = await readJsonBody(request);
+      const room = await createManagedRoom({
+        name: validateUserName(body.name),
+        floor: validateBoundedInt(body.floor, 1, 30, "ชั้น"),
+        capacity: validateBoundedInt(body.capacity, 1, 50, "ความจุ"),
+        hasPower: validateFlag(body.hasPower, "hasPower"),
+        hasWhiteboard: validateFlag(body.hasWhiteboard, "hasWhiteboard"),
+        quietLevel: validateQuietLevel(body.quietLevel),
+      });
+      return json(room, 201);
+    }
+    const roomMatch = pathname.match(/^\/api\/admin\/rooms\/(\d+)$/);
+    if (roomMatch && method === "PATCH") {
+      const roomId = validateRoomId(roomMatch[1]);
+      const body = await readJsonBody(request);
+      await updateManagedRoom(roomId, {
+        ...(body.name !== undefined ? { name: validateUserName(body.name) } : {}),
+        ...(body.floor !== undefined ? { floor: validateBoundedInt(body.floor, 1, 30, "ชั้น") } : {}),
+        ...(body.capacity !== undefined ? { capacity: validateBoundedInt(body.capacity, 1, 50, "ความจุ") } : {}),
+        ...(body.hasPower !== undefined ? { hasPower: validateFlag(body.hasPower, "hasPower") } : {}),
+        ...(body.hasWhiteboard !== undefined ? { hasWhiteboard: validateFlag(body.hasWhiteboard, "hasWhiteboard") } : {}),
+        ...(body.quietLevel !== undefined ? { quietLevel: validateQuietLevel(body.quietLevel) } : {}),
+        ...(body.enabled !== undefined ? { enabled: validateFlag(body.enabled, "enabled") } : {}),
+      });
+      return json({ updated: true });
+    }
+    const maintenanceMatch = pathname.match(/^\/api\/admin\/rooms\/(\d+)\/maintenance(?:\/(\d+))?$/);
+    if (maintenanceMatch && method === "POST" && !maintenanceMatch[2]) {
+      const roomId = validateRoomId(maintenanceMatch[1]);
+      const body = await readJsonBody(request);
+      const startsAt = validateTimestamp(body.startsAt);
+      const endsAt = validateTimestamp(body.endsAt);
+      if (startsAt <= Date.now() || endsAt <= startsAt || endsAt > Date.now() + 30 * 24 * 60 * 60 * 1000) {
+        throw new HttpError(400, "ช่วงปิดปรับปรุงต้องเริ่มในอนาคตและไม่เกิน 30 วัน");
+      }
+      return json(await addRoomMaintenance(roomId, startsAt, endsAt, validateUserName(body.reason)), 201);
+    }
+    if (maintenanceMatch && method === "DELETE" && maintenanceMatch[2]) {
+      await removeRoomMaintenance(validateRoomId(maintenanceMatch[1]), validateRecordId(maintenanceMatch[2]));
+      return json({ deleted: true });
+    }
+    const deleteRoomMatch = pathname.match(/^\/api\/admin\/rooms\/(\d+)\/delete$/);
+    if (deleteRoomMatch && method === "POST") {
+      await removeRoom(validateRoomId(deleteRoomMatch[1]));
+      return json({ deleted: true });
+    }
+  }
+
+  if (pathname === "/api/me/bookings" && method === "GET") {
+    await releaseExpiredBookings(Date.now());
+    return json(await getMyHistory(validateUserId(url.searchParams.get("userId"))));
+  }
 
   if (pathname === "/api/rooms" && method === "GET") {
     await releaseExpiredBookings(Date.now());
@@ -136,6 +213,21 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
     return json(await checkIn(token));
   }
 
+  const bookingEditMatch = pathname.match(/^\/api\/bookings\/([^/]+)\/(edit|cancel)$/);
+  if (bookingEditMatch && method === "POST") {
+    const token = validateToken(bookingEditMatch[1]);
+    if (bookingEditMatch[2] === "cancel") {
+      return json({ booking: await cancelPendingBooking(token) });
+    }
+    const body = await readJsonBody(request);
+    const result = await editPendingBooking(token, {
+      roomId: validateRoomId(body.roomId),
+      durationMinutes: validateDuration(body.durationMinutes),
+      startAt: validateTimestamp(body.startAt),
+    });
+    return json(result);
+  }
+
   const bookingLiveMatch = pathname.match(/^\/api\/bookings\/([^/]+)\/(live|events)$/);
   if (bookingLiveMatch && method === "GET") {
     const token = validateToken(bookingLiveMatch[1]);
@@ -165,6 +257,21 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
   }
 
   throw new HttpError(404, "ไม่พบ API นี้");
+}
+
+function validateBoundedInt(value: unknown, min: number, max: number, label: string): number {
+  const number = typeof value === "string" ? Number(value) : value;
+  if (typeof number !== "number" || !Number.isInteger(number) || number < min || number > max) {
+    throw new HttpError(400, `${label}ต้องอยู่ระหว่าง ${min}-${max}`);
+  }
+  return number;
+}
+
+function validateQuietLevel(value: unknown): QuietLevel {
+  if (value !== "quiet" && value !== "normal" && value !== "group") {
+    throw new HttpError(400, "ระดับความเงียบไม่ถูกต้อง");
+  }
+  return value;
 }
 
 export async function handleApi(request: Request): Promise<Response> {

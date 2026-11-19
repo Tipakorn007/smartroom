@@ -8,12 +8,15 @@ import {
 } from "../shared/constants.ts";
 import type {
   Booking,
+  BookingHistoryEntry,
   BookingWithRoom,
   CheckInResponse,
   CreateBookingResponse,
   LiveSnapshot,
+  MyHistorySnapshot,
   RecommendRequest,
   Room,
+  RoomMaintenance,
   RoomView,
   StatsResponse,
   WaitlistEntry,
@@ -33,6 +36,10 @@ import {
 } from "./validation.ts";
 
 const MINUTE = 60 * 1000;
+const NO_SHOW_WINDOW_MS = 30 * 24 * 60 * MINUTE;
+const NO_SHOW_THRESHOLD = 3;
+const NO_SHOW_COOLDOWN_MS = 24 * 60 * MINUTE;
+const ACTIVE_BOOKING_LIMIT = 1;
 
 interface DemoBooking extends Booking {
   userId: string | null;
@@ -69,8 +76,61 @@ const DEMO_ROOMS: Room[] = [
 
 let bookings: DemoBooking[] = [];
 let waitlists: DemoWaitlist[] = [];
+const noShowsByUser = new Map<string, number[]>();
+const cancelledBookingIds = new Set<number>();
+const disabledRoomIds = new Set<number>();
+const roomMaintenance: RoomMaintenance[] = [];
 let nextBookingId = 1;
 let nextWaitlistId = 1;
+let nextMaintenanceId = 1;
+let nextRoomId = 21;
+
+function roomUnavailableUntil(roomId: number, now: number): number | null {
+  if (disabledRoomIds.has(roomId)) return Number.MAX_SAFE_INTEGER;
+  const active = roomMaintenance
+    .filter((item) => item.roomId === roomId && item.startsAt <= now && item.endsAt > now)
+    .sort((a, b) => a.endsAt - b.endsAt)[0];
+  return active?.endsAt ?? null;
+}
+
+function overlapsMaintenance(roomId: number, startAt: number, endAt: number): boolean {
+  return roomMaintenance.some(
+    (item) => item.roomId === roomId && startAt < item.endsAt && endAt > item.startsAt,
+  );
+}
+
+function hasScheduledBooking(roomId: number, now: number): boolean {
+  return bookings.some(
+    (booking) => booking.roomId === roomId &&
+      (booking.status === "pending" || booking.status === "active") && booking.endAt > now,
+  );
+}
+
+function getNoShowTimes(userId: string, now: number): number[] {
+  const recent = (noShowsByUser.get(userId) ?? []).filter((at) => at > now - NO_SHOW_WINDOW_MS);
+  if (recent.length) noShowsByUser.set(userId, recent);
+  else noShowsByUser.delete(userId);
+  return recent;
+}
+
+function getBookingBlock(userId: string, now: number): number | null {
+  const recent = getNoShowTimes(userId, now);
+  return recent.length >= NO_SHOW_THRESHOLD
+    ? (recent[recent.length - 1] ?? now) + NO_SHOW_COOLDOWN_MS
+    : null;
+}
+
+function enforceBookingPolicy(userId: string, now: number, exceptBookingId?: number): void {
+  const blockedUntil = getBookingBlock(userId, now);
+  if (blockedUntil !== null && blockedUntil > now) {
+    throw new HttpError(429, `พักสิทธิ์จองชั่วคราวจากการไม่มาใช้ห้อง ลองจองอีกครั้ง ${new Date(blockedUntil).toLocaleString("th-TH", { timeZone: "Asia/Bangkok" })} น.`);
+  }
+  const activeBooking = bookings.some(
+    (booking) => booking.userId === userId && booking.id !== exceptBookingId &&
+      (booking.status === "pending" || booking.status === "active"),
+  );
+  if (activeBooking) throw new HttpError(409, "คุณมีการจองที่ยังใช้งานอยู่ได้ครั้งละ 1 รายการ กรุณาเช็กอินหรือจบการจองเดิมก่อน");
+}
 
 function releaseExpiredBookings(now: number): void {
   const expiredRoomIds = new Set<number>();
@@ -90,6 +150,10 @@ function releaseExpiredBookings(now: number): void {
     if (booking.status === "pending" && now >= booking.startAt + CHECKIN_WINDOW_MS) {
       booking.status = "released";
       booking.releasedAt = now;
+      const queueEntry = waitlists.find((entry) => entry.bookingId === booking.id);
+      if (booking.userId && (!queueEntry || queueEntry.status === "accepted")) {
+        noShowsByUser.set(booking.userId, [...getNoShowTimes(booking.userId, now), now]);
+      }
       expiredRoomIds.add(booking.roomId);
     } else if (booking.status === "active" && booking.endAt <= now) {
       booking.status = "finished";
@@ -101,6 +165,7 @@ function releaseExpiredBookings(now: number): void {
 
 function listRoomViews(now: number): RoomView[] {
   releaseExpiredBookings(now);
+  for (const room of DEMO_ROOMS) offerNextWaitlist(room.id, now);
   return DEMO_ROOMS.map((room) => {
     const booking = bookings.find(
       (item): item is DemoBooking & { status: "pending" | "active" } =>
@@ -115,6 +180,25 @@ function listRoomViews(now: number): RoomView[] {
     const waitlistCount = waitlists.filter(
       (entry) => entry.roomId === room.id && (entry.status === "waiting" || entry.status === "offered"),
     ).length;
+    const nextBookingAt = bookings
+      .filter((item) => item.roomId === room.id && (item.status === "pending" || item.status === "active") && item.startAt > now)
+      .sort((a, b) => a.startAt - b.startAt)[0]?.startAt ?? null;
+    const closedUntil = roomUnavailableUntil(room.id, now);
+    if (closedUntil !== null) {
+      const activeMaintenance = roomMaintenance.find(
+        (item) => item.roomId === room.id && item.startsAt <= now && item.endsAt > now,
+      );
+      return {
+        ...room,
+        status: "closed",
+        currentBooking: null,
+        checkinDeadline: null,
+        waitlistCount,
+        closureEndsAt: closedUntil === Number.MAX_SAFE_INTEGER ? null : closedUntil,
+        closureReason: activeMaintenance?.reason ?? "ปิดใช้งานชั่วคราว",
+        nextBookingAt,
+      };
+    }
     if (!booking) {
       return {
         ...room,
@@ -122,6 +206,7 @@ function listRoomViews(now: number): RoomView[] {
         currentBooking: null,
         checkinDeadline: null,
         waitlistCount,
+        nextBookingAt,
       };
     }
     return {
@@ -134,6 +219,7 @@ function listRoomViews(now: number): RoomView[] {
       },
       checkinDeadline: booking.status === "pending" ? booking.startAt + CHECKIN_WINDOW_MS : null,
       waitlistCount,
+      nextBookingAt,
     };
   });
 }
@@ -166,17 +252,7 @@ function publicBooking(booking: DemoBooking): Booking {
 }
 
 function offerNextWaitlist(roomId: number, now: number): void {
-  if (
-    bookings.some(
-      (booking) =>
-        booking.roomId === roomId &&
-        (booking.status === "pending" || booking.status === "active") &&
-        booking.startAt <= now &&
-        booking.endAt > now,
-    )
-  ) {
-    return;
-  }
+  if (roomUnavailableUntil(roomId, now) !== null || hasScheduledBooking(roomId, now)) return;
   if (waitlists.some((entry) => entry.roomId === roomId && entry.status === "offered")) return;
 
   const next = waitlists
@@ -244,7 +320,21 @@ function getLiveSnapshot(userId: string, now: number): LiveSnapshot {
         !waitlists.some((entry) => entry.bookingId === booking.id && entry.status === "offered"),
     )
     .map((booking) => ({ booking: publicBooking(booking), room: getRoom(booking.roomId) }));
-  return { rooms, myWaitlists: getUserWaitlists(userId), myBookings };
+  const noShows = getNoShowTimes(userId, now);
+  return {
+    rooms,
+    myWaitlists: getUserWaitlists(userId),
+    myBookings,
+    bookingPolicy: {
+      activeBookingLimit: ACTIVE_BOOKING_LIMIT,
+      hasActiveBooking: myBookings.length > 0,
+      noShowsInWindow: noShows.length,
+      noShowThreshold: NO_SHOW_THRESHOLD,
+      noShowWindowMs: NO_SHOW_WINDOW_MS,
+      cooldownMs: NO_SHOW_COOLDOWN_MS,
+      blockedUntil: getBookingBlock(userId, now),
+    },
+  };
 }
 
 function buildBookingResponse(
@@ -275,7 +365,7 @@ function getStats(now: number): StatsResponse {
         (entry) =>
           entry.bookingId === booking.id &&
           (entry.status === "offered" || entry.status === "expired" || entry.status === "cancelled"),
-      ),
+      ) && !cancelledBookingIds.has(booking.id),
   );
   const checkedInBookings = countedBookings.filter((booking) => booking.checkedInAt !== null).length;
   const totalBookings = countedBookings.length;
@@ -313,6 +403,10 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
   const method = request.method;
   const now = Date.now();
 
+  if (pathname === "/api/admin/session" && method === "GET") {
+    return json({ authenticated: true, demo: true });
+  }
+
   if ((pathname === "/api/live" || pathname === "/api/events") && method === "GET") {
     const userId = validateUserId(url.searchParams.get("userId"));
     const snapshot = getLiveSnapshot(userId, now);
@@ -325,6 +419,138 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
 
   if (pathname === "/api/stats" && method === "GET") {
     return json(getStats(now));
+  }
+
+  if (pathname === "/api/me/bookings" && method === "GET") {
+    const userId = validateUserId(url.searchParams.get("userId"));
+    const history: BookingHistoryEntry[] = bookings
+      .filter((booking) => booking.userId === userId)
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .map((booking) => ({
+        booking: publicBooking(booking),
+        room: getRoom(booking.roomId),
+        cancelled: cancelledBookingIds.has(booking.id),
+      }));
+    const activeWaitlists = getUserWaitlists(userId);
+    const queueHistory = waitlists
+      .filter((entry) => entry.userId === userId)
+      .sort((a, b) => b.createdAt - a.createdAt || b.id - a.id)
+      .map((entry) => activeWaitlists.find((active) => active.id === entry.id) ?? ({
+        id: entry.id,
+        roomId: entry.roomId,
+        roomName: entry.roomName,
+        durationMinutes: entry.durationMinutes,
+        status: entry.status,
+        createdAt: entry.createdAt,
+        position: null,
+        offerExpiresAt: entry.offerExpiresAt,
+      }));
+    const result: MyHistorySnapshot = { bookings: history, waitlists: queueHistory };
+    return json(result);
+  }
+
+  if (pathname === "/api/admin/rooms" && method === "GET") {
+    return json({
+      rooms: DEMO_ROOMS.map((room) => ({
+        ...room,
+        enabled: !disabledRoomIds.has(room.id),
+        maintenance: roomMaintenance.filter((item) => item.roomId === room.id),
+      })),
+    });
+  }
+
+  if (pathname === "/api/admin/rooms" && method === "POST") {
+    const body = await readJsonBody(request);
+    const name = validateUserName(body.name);
+    const floor = Number(body.floor);
+    const capacity = Number(body.capacity);
+    if (!Number.isInteger(floor) || floor < 1 || floor > 30) throw new HttpError(400, "ชั้นต้องอยู่ระหว่าง 1-30");
+    if (!Number.isInteger(capacity) || capacity < 1 || capacity > 50) throw new HttpError(400, "ความจุต้องอยู่ระหว่าง 1-50 คน");
+    if (DEMO_ROOMS.some((room) => room.name.toLowerCase() === name.toLowerCase())) {
+      throw new HttpError(409, "มีชื่อห้องนี้แล้ว");
+    }
+    if (typeof body.hasPower !== "boolean" || typeof body.hasWhiteboard !== "boolean") {
+      throw new HttpError(400, "กรุณาระบุคุณสมบัติห้องให้ครบ");
+    }
+    if (!["quiet", "normal", "group"].includes(String(body.quietLevel))) {
+      throw new HttpError(400, "ระดับความเงียบไม่ถูกต้อง");
+    }
+    const room: Room = {
+      id: nextRoomId++, name, floor, capacity,
+      hasPower: body.hasPower, hasWhiteboard: body.hasWhiteboard,
+      quietLevel: body.quietLevel as Room["quietLevel"],
+    };
+    DEMO_ROOMS.push(room);
+    return json({ ...room, enabled: true, maintenance: [] }, 201);
+  }
+
+  const adminRoomMatch = pathname.match(/^\/api\/admin\/rooms\/(\d+)(?:\/(maintenance))?$/);
+  if (adminRoomMatch && method === "PATCH" && !adminRoomMatch[2]) {
+    const roomId = validateRoomId(adminRoomMatch[1]);
+    const room = getRoom(roomId);
+    const body = await readJsonBody(request);
+    if (body.enabled === false && hasScheduledBooking(roomId, now)) {
+      throw new HttpError(409, "ยังมีการจองในห้องนี้ จึงปิดใช้งานไม่ได้");
+    }
+    if (typeof body.enabled === "boolean") {
+      if (body.enabled) disabledRoomIds.delete(roomId);
+      else disabledRoomIds.add(roomId);
+    }
+    if (body.name !== undefined) {
+      const name = validateUserName(body.name);
+      if (DEMO_ROOMS.some((item) => item.id !== roomId && item.name.toLowerCase() === name.toLowerCase())) {
+        throw new HttpError(409, "มีชื่อห้องนี้แล้ว");
+      }
+      room.name = name;
+    }
+    if (body.floor !== undefined) {
+      const floor = Number(body.floor);
+      if (!Number.isInteger(floor) || floor < 1 || floor > 30) throw new HttpError(400, "ชั้นต้องอยู่ระหว่าง 1-30");
+      room.floor = floor;
+    }
+    if (body.capacity !== undefined) {
+      const capacity = Number(body.capacity);
+      if (!Number.isInteger(capacity) || capacity < 1 || capacity > 50) throw new HttpError(400, "ความจุต้องอยู่ระหว่าง 1-50 คน");
+      room.capacity = capacity;
+    }
+    if (typeof body.hasPower === "boolean") room.hasPower = body.hasPower;
+    if (typeof body.hasWhiteboard === "boolean") room.hasWhiteboard = body.hasWhiteboard;
+    if (body.quietLevel !== undefined) {
+      if (!["quiet", "normal", "group"].includes(String(body.quietLevel))) throw new HttpError(400, "ระดับความเงียบไม่ถูกต้อง");
+      room.quietLevel = body.quietLevel as Room["quietLevel"];
+    }
+    return json({ ...room, enabled: !disabledRoomIds.has(roomId) });
+  }
+
+  if (adminRoomMatch && method === "POST" && adminRoomMatch[2] === "maintenance") {
+    const roomId = validateRoomId(adminRoomMatch[1]);
+    getRoom(roomId);
+    const body = await readJsonBody(request);
+    const startsAt = validateTimestamp(body.startsAt);
+    const endsAt = validateTimestamp(body.endsAt);
+    const reason = validateUserName(body.reason);
+    if (startsAt <= now || endsAt <= startsAt || endsAt > now + 30 * 24 * 60 * MINUTE) {
+      throw new HttpError(400, "ช่วงปิดปรับปรุงต้องเริ่มในอนาคตและไม่เกิน 30 วัน");
+    }
+    if (hasScheduledBooking(roomId, startsAt) && bookings.some((booking) =>
+      booking.roomId === roomId && (booking.status === "pending" || booking.status === "active") &&
+      startsAt < booking.endAt && endsAt > booking.startAt,
+    )) throw new HttpError(409, "ช่วงเวลานี้มีการจองอยู่ จึงปิดปรับปรุงไม่ได้");
+    if (overlapsMaintenance(roomId, startsAt, endsAt)) throw new HttpError(409, "ช่วงปิดปรับปรุงซ้อนกับรายการเดิม");
+    const maintenance: RoomMaintenance = { id: nextMaintenanceId++, roomId, startsAt, endsAt, reason };
+    roomMaintenance.push(maintenance);
+    return json(maintenance, 201);
+  }
+
+  const maintenanceMatch = pathname.match(/^\/api\/admin\/rooms\/(\d+)\/maintenance\/(\d+)$/);
+  if (maintenanceMatch && method === "DELETE") {
+    const roomId = validateRoomId(maintenanceMatch[1]);
+    const maintenanceId = validateRecordId(maintenanceMatch[2]);
+    const index = roomMaintenance.findIndex((item) => item.id === maintenanceId && item.roomId === roomId);
+    if (index < 0) throw new HttpError(404, "ไม่พบช่วงปิดปรับปรุงนี้");
+    roomMaintenance.splice(index, 1);
+    offerNextWaitlist(roomId, now);
+    return json({ deleted: true });
   }
 
   if (pathname === "/api/recommend" && method === "POST") {
@@ -358,18 +584,14 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
     ) {
       throw new HttpError(409, "คุณมีการจองห้องนี้อยู่แล้ว");
     }
+    enforceBookingPolicy(userId, now);
     if (waitlists.some((entry) => entry.roomId === roomId && entry.userId === userId && (
       entry.status === "waiting" || entry.status === "offered"
     ))) {
       throw new HttpError(409, "คุณอยู่ในคิวของห้องนี้แล้ว");
     }
-    const occupied = bookings.some(
-      (booking) =>
-        booking.roomId === roomId &&
-        (booking.status === "pending" || booking.status === "active") &&
-        booking.startAt <= now &&
-        booking.endAt > now,
-    );
+    const occupied = hasScheduledBooking(roomId, now);
+    if (roomUnavailableUntil(roomId, now) !== null) throw new HttpError(409, "ห้องปิดใช้งานหรือปิดปรับปรุงอยู่");
     const hasQueue = waitlists.some(
       (entry) =>
         entry.roomId === roomId && (entry.status === "waiting" || entry.status === "offered"),
@@ -408,6 +630,8 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
     const startAt = Math.floor(now / 1000) * 1000;
     const endAt = startAt + durationMinutes * MINUTE;
     releaseExpiredBookings(now);
+    if (userId) enforceBookingPolicy(userId, now);
+    if (roomUnavailableUntil(roomId, now) !== null) throw new HttpError(409, "ห้องปิดใช้งานหรือปิดปรับปรุงอยู่");
     if (
       waitlists.some(
         (entry) =>
@@ -427,6 +651,7 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
     ) {
       throw new HttpError(409, "ห้องนี้ถูกจองอยู่ในช่วงเวลานี้ กรุณาเลือกห้องอื่นหรือรอให้ห้องว่าง");
     }
+    if (overlapsMaintenance(roomId, startAt, endAt)) throw new HttpError(409, "ช่วงเวลานี้ห้องปิดปรับปรุงอยู่");
 
     const booking: DemoBooking = {
       id: nextBookingId++,
@@ -443,6 +668,43 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
     };
     bookings.push(booking);
     return json(await buildBookingResponse(booking, room, url.origin), 201);
+  }
+
+  const bookingEditMatch = pathname.match(/^\/api\/bookings\/([^/]+)\/(edit|cancel)$/);
+  if (bookingEditMatch && method === "POST") {
+    const token = validateToken(bookingEditMatch[1]);
+    releaseExpiredBookings(now);
+    const booking = bookings.find((item) => item.token === token);
+    if (!booking) throw new HttpError(404, "ไม่พบการจองนี้");
+    if (booking.status !== "pending") throw new HttpError(409, "แก้ไขหรือยกเลิกได้เฉพาะรายการที่ยังไม่เช็กอิน");
+    if (bookingEditMatch[2] === "cancel") {
+      booking.status = "released";
+      booking.releasedAt = now;
+      cancelledBookingIds.add(booking.id);
+      offerNextWaitlist(booking.roomId, now);
+      return json({ cancelled: true });
+    }
+    const body = await readJsonBody(request);
+    const roomId = validateRoomId(body.roomId);
+    const durationMinutes = validateDuration(body.durationMinutes);
+    const startAt = validateTimestamp(body.startAt);
+    const endAt = startAt + durationMinutes * MINUTE;
+    if (startAt < now + 5 * MINUTE || startAt > now + 7 * 24 * 60 * MINUTE) {
+      throw new HttpError(400, "เวลาเริ่มต้องอยู่ระหว่างอีก 5 นาทีถึง 7 วัน");
+    }
+    if (waitlists.some((entry) => entry.roomId === roomId && (entry.status === "waiting" || entry.status === "offered"))) {
+      throw new HttpError(409, "มีผู้ใช้รอคิวห้องนี้อยู่ จึงย้ายการจองเข้าห้องนี้ไม่ได้");
+    }
+    if (roomUnavailableUntil(roomId, startAt) !== null || overlapsMaintenance(roomId, startAt, endAt)) {
+      throw new HttpError(409, "ห้องปิดใช้งานหรือปิดปรับปรุงในช่วงเวลาที่เลือก");
+    }
+    if (bookings.some((item) => item.id !== booking.id && item.roomId === roomId &&
+      (item.status === "pending" || item.status === "active") && startAt < item.endAt && endAt > item.startAt,
+    )) throw new HttpError(409, "เวลาที่เลือกชนกับการจองอื่น");
+    booking.roomId = roomId;
+    booking.startAt = startAt;
+    booking.endAt = endAt;
+    return json({ booking: publicBooking(booking), room: getRoom(roomId) });
   }
 
   const waitlistMatch = pathname.match(/^\/api\/waitlist\/([^/]+)\/(accept|cancel)$/);
@@ -492,6 +754,7 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
     if (!booking || booking.status !== "pending") {
       throw new HttpError(409, "ห้องนี้ไม่พร้อมรับข้อเสนอแล้ว");
     }
+    enforceBookingPolicy(userId, now, booking.id);
     booking.startAt = now;
     booking.endAt = now + entry.durationMinutes * MINUTE;
     entry.status = "accepted";
@@ -519,11 +782,13 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
       return json(response);
     }
     if (storedBooking.status === "released") {
+      if (cancelledBookingIds.has(storedBooking.id)) throw new HttpError(409, "การจองนี้ถูกยกเลิกแล้ว");
       throw new HttpError(409, "การจองนี้ถูกปล่อยคืนแล้ว เพราะไม่ได้เช็กอินภายใน 15 นาที");
     }
     if (storedBooking.status === "finished") {
       throw new HttpError(409, "การจองนี้สิ้นสุดเวลาใช้งานแล้ว");
     }
+    if (now < storedBooking.startAt) throw new HttpError(409, "ยังไม่ถึงเวลาเริ่มจอง จึงยังเช็กอินไม่ได้");
     if (now >= storedBooking.startAt + CHECKIN_WINDOW_MS) {
       storedBooking.status = "released";
       storedBooking.releasedAt = now;
@@ -573,6 +838,10 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
         (entry.status === "waiting" || entry.status === "offered"),
     );
     if (hasQueue) throw new HttpError(409, "มีคนรอคิวห้องนี้อยู่ จึงต่อเวลาไม่ได้");
+    if (bookings.some((item) => item.id !== booking.id && item.roomId === booking.roomId &&
+      (item.status === "pending" || item.status === "active") &&
+      booking.startAt < item.endAt && booking.endAt + PRESENCE_EXTENSION_MS > item.startAt,
+    )) throw new HttpError(409, "มีการจองถัดไปในช่วงเวลานั้น จึงต่อเวลาไม่ได้");
     booking.endAt += PRESENCE_EXTENSION_MS;
     return json({ booking: publicBooking(booking) });
   }

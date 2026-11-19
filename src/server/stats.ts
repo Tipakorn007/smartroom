@@ -24,14 +24,15 @@ export async function getStats(now: number = Date.now()): Promise<StatsResponse>
   ] = await Promise.all([
     countRows(
       `SELECT COUNT(*) AS value FROM bookings b
-       WHERE NOT EXISTS (
+       WHERE b.cancelled_at IS NULL AND
+       NOT EXISTS (
          SELECT 1 FROM waitlist w
          WHERE w.booking_id = b.id AND w.status IN ('offered', 'expired', 'cancelled')
        )`,
     ),
     countRows(
       `SELECT COUNT(*) AS value FROM bookings b
-       WHERE b.status = 'released' AND NOT EXISTS (
+       WHERE b.status = 'released' AND b.cancelled_at IS NULL AND NOT EXISTS (
          SELECT 1 FROM waitlist w
          WHERE w.booking_id = b.id AND w.status IN ('offered', 'expired', 'cancelled')
        )`,
@@ -43,7 +44,7 @@ export async function getStats(now: number = Date.now()): Promise<StatsResponse>
       `SELECT EXTRACT(HOUR FROM to_timestamp(start_at / 1000.0) AT TIME ZONE 'Asia/Bangkok')::integer AS hour,
               COUNT(*)::integer AS bookings
        FROM bookings
-       WHERE NOT EXISTS (
+       WHERE cancelled_at IS NULL AND NOT EXISTS (
          SELECT 1 FROM waitlist w
          WHERE w.booking_id = bookings.id AND w.status IN ('offered', 'expired', 'cancelled')
        )

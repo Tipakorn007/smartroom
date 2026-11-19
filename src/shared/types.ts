@@ -14,7 +14,7 @@ export type QuietLevel = "quiet" | "normal" | "group";
  * - pending   = จองแล้วรอเช็กอิน (ยังไม่เช็กอิน)
  * สถานะนี้คำนวณสดจากเวลา ไม่ได้เก็บลงฐานข้อมูล
  */
-export type RoomStatus = "available" | "in_use" | "pending" | "offered";
+export type RoomStatus = "available" | "in_use" | "pending" | "offered" | "closed";
 
 /**
  * สถานะของ "การจอง" ที่เก็บในฐานข้อมูล
@@ -64,6 +64,9 @@ export interface RoomView extends Room {
   /** เวลาสุดท้ายที่ยังเช็กอินได้ (เฉพาะสถานะ pending) */
   checkinDeadline: number | null;
   waitlistCount: number;
+  closureEndsAt?: number | null;
+  closureReason?: string | null;
+  nextBookingAt?: number | null;
 }
 
 /** ข้อมูลที่ client ส่งมาสร้างการจอง */
@@ -93,6 +96,35 @@ export interface LiveSnapshot {
   rooms: RoomView[];
   myWaitlists: WaitlistEntry[];
   myBookings: BookingWithRoom[];
+  /** Demo-only booking limits shown in the local review server. */
+  bookingPolicy?: BookingPolicySnapshot;
+}
+
+export interface BookingPolicySnapshot {
+  activeBookingLimit: number;
+  hasActiveBooking: boolean;
+  noShowsInWindow: number;
+  noShowThreshold: number;
+  noShowWindowMs: number;
+  cooldownMs: number;
+  blockedUntil: number | null;
+}
+
+export interface BookingHistoryEntry extends BookingWithRoom {
+  cancelled: boolean;
+}
+
+export interface MyHistorySnapshot {
+  bookings: BookingHistoryEntry[];
+  waitlists: WaitlistEntry[];
+}
+
+export interface RoomMaintenance {
+  id: number;
+  roomId: number;
+  startsAt: number;
+  endsAt: number;
+  reason: string;
 }
 
 export interface BookingLiveSnapshot extends BookingWithRoom {

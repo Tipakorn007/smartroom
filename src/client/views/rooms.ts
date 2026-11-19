@@ -10,6 +10,7 @@ const STATUS_LABEL: Record<RoomStatus, string> = {
   in_use: "กำลังใช้งาน",
   pending: "รอเช็กอิน",
   offered: "กำลังเสนอคิว",
+  closed: "ปิดใช้งาน",
 };
 
 const QUIET_LABEL: Record<QuietLevel, string> = {
@@ -122,7 +123,7 @@ function kpi(
 
 function buildLegend(): HTMLElement {
   const legend = el("div", { class: "room-legend", attrs: { "aria-label": "คำอธิบายสถานะห้อง" } });
-  for (const status of ["available", "in_use", "pending", "offered"] as const) {
+  for (const status of ["available", "in_use", "pending", "offered", "closed"] as const) {
     legend.append(
       el("div", { class: "room-legend-item" }, [
         el("span", {
@@ -156,7 +157,9 @@ function buildRoomRow(
     buildRoomStatus(room, entry),
   ];
 
-  if (entry?.status === "offered") {
+  if (room.status === "closed") {
+    // Closed rooms are informational and do not expose booking or queue actions.
+  } else if (entry?.status === "offered") {
     const acceptButton = el("button", {
       class: "button primary room-book-button",
       type: "button",
@@ -216,8 +219,15 @@ function buildRoomStatus(room: RoomView, entry: WaitlistEntry | undefined): HTML
     ]),
   ];
 
-  if (room.status === "available") {
-    statusContent.push(el("span", { class: "room-status-detail", text: "จองได้เลยตอนนี้" }));
+  if (room.status === "closed") {
+    statusContent.push(el("span", { class: "room-status-detail", text: room.closureReason ?? "ปิดใช้งานชั่วคราว" }));
+  } else if (room.status === "available") {
+    statusContent.push(el("span", {
+      class: "room-status-detail",
+      text: room.nextBookingAt
+        ? `ว่างถึง ${formatClock(room.nextBookingAt)} น. · คิวจะได้รับข้อเสนอหลังการจองถัดไป`
+        : "จองได้เลยตอนนี้",
+    }));
   } else if (room.status === "offered") {
     statusContent.push(
       el("span", { class: "room-status-detail", text: "กำลังรอผู้ใช้ในคิวตอบรับ" }),
@@ -247,6 +257,10 @@ function buildRoomStatus(room: RoomView, entry: WaitlistEntry | undefined): HTML
         text: `กำลังใช้งาน · ถึง ${formatClock(booking.endAt)} น.`,
       }),
     );
+    if (room.nextBookingAt) statusContent.push(el("span", {
+      class: "room-status-detail",
+      text: `มีการจองถัดไป ${formatClock(room.nextBookingAt)} น. · คิวจะได้รับข้อเสนอหลังจากนั้น`,
+    }));
   }
 
   if (room.waitlistCount > 0) {

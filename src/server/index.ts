@@ -29,6 +29,11 @@ const PUBLIC_DIR = join(import.meta.dir, "../../public");
  * - "/main.js" คือไฟล์ที่ bun build สร้างไว้ใน public/
  */
 async function serveStatic(pathname: string): Promise<Response> {
+  if (pathname === "/admin" || pathname === "/admin/") {
+    return new Response(Bun.file(join(PUBLIC_DIR, "admin.html")), {
+      headers: { "content-type": "text/html; charset=utf-8" },
+    });
+  }
   if (pathname === "/" || pathname.startsWith("/checkin/")) {
     return new Response(Bun.file(join(CLIENT_DIR, "index.html")), {
       headers: { "content-type": "text/html; charset=utf-8" },
@@ -39,8 +44,8 @@ async function serveStatic(pathname: string): Promise<Response> {
       headers: { "content-type": "text/css; charset=utf-8" },
     });
   }
-  if (pathname === "/main.js") {
-    const bundle = Bun.file(join(PUBLIC_DIR, "main.js"));
+  if (pathname === "/main.js" || pathname === "/admin.js") {
+    const bundle = Bun.file(join(PUBLIC_DIR, pathname.slice(1)));
     if (await bundle.exists()) {
       return new Response(bundle, {
         headers: { "content-type": "text/javascript; charset=utf-8" },
@@ -67,6 +72,7 @@ async function serveStatic(pathname: string): Promise<Response> {
 
 const server = Bun.serve({
   port: PORT,
+  hostname: "127.0.0.1",
   // dev mode ทำให้ error ที่เกิดขึ้นแสดง stack trace ที่อ่านง่าย
   development: true,
 

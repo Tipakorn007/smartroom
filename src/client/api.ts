@@ -6,6 +6,8 @@
 import type {
   Booking,
   BookingLiveSnapshot,
+  BookingHistoryEntry,
+  MyHistorySnapshot,
   BookingWithRoom,
   CheckInResponse,
   CreateBookingRequest,
@@ -16,6 +18,7 @@ import type {
   RoomView,
   StatsResponse,
   WaitlistEntry,
+  RoomMaintenance,
 } from "../shared/types";
 
 export class ApiError extends Error {
@@ -62,9 +65,61 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  adminSession(): Promise<{ authenticated: boolean; demo?: boolean }> {
+    return request("/api/admin/session");
+  },
+
+  adminLogin(username: string, password: string): Promise<{ authenticated: true }> {
+    return request("/api/admin/login", { method: "POST", body: JSON.stringify({ username, password }) });
+  },
+
+  adminLogout(): Promise<{ authenticated: false }> {
+    return request("/api/admin/logout", { method: "POST" });
+  },
+
   /** ห้อง คิว และการจองของอุปกรณ์นี้ */
   live(userId: string): Promise<LiveSnapshot> {
     return request<LiveSnapshot>(`/api/live?userId=${encodeURIComponent(userId)}`);
+  },
+
+  bookingHistory(userId: string): Promise<MyHistorySnapshot> {
+    return request<MyHistorySnapshot>(`/api/me/bookings?userId=${encodeURIComponent(userId)}`);
+  },
+
+  editBooking(token: string, payload: { roomId: number; durationMinutes: number; startAt: number }):
+    Promise<{ booking: Booking; room: import("../shared/types").Room }> {
+    return request(`/api/bookings/${encodeURIComponent(token)}/edit`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
+
+  cancelBooking(token: string): Promise<{ cancelled?: true; booking?: Booking }> {
+    return request(`/api/bookings/${encodeURIComponent(token)}/cancel`, { method: "POST" });
+  },
+
+  adminRooms(): Promise<{ rooms: Array<import("../shared/types").Room & { enabled: boolean; maintenance: RoomMaintenance[] }> }> {
+    return request("/api/admin/rooms");
+  },
+
+  createRoom(payload: {
+    name: string; floor: number; capacity: number; hasPower: boolean; hasWhiteboard: boolean;
+    quietLevel: "quiet" | "normal" | "group";
+  }): Promise<unknown> {
+    return request("/api/admin/rooms", { method: "POST", body: JSON.stringify(payload) });
+  },
+
+  updateRoom(roomId: number, payload: Record<string, unknown>): Promise<unknown> {
+    return request(`/api/admin/rooms/${roomId}`, { method: "PATCH", body: JSON.stringify(payload) });
+  },
+
+  addMaintenance(roomId: number, payload: { startsAt: number; endsAt: number; reason: string }):
+    Promise<RoomMaintenance> {
+    return request(`/api/admin/rooms/${roomId}/maintenance`, { method: "POST", body: JSON.stringify(payload) });
+  },
+
+  removeMaintenance(roomId: number, maintenanceId: number): Promise<{ deleted: true }> {
+    return request(`/api/admin/rooms/${roomId}/maintenance/${maintenanceId}`, { method: "DELETE" });
   },
 
   /** แผนผังห้อง + สถานะล่าสุด */

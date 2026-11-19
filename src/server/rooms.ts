@@ -19,6 +19,17 @@ interface WaitlistCountRow {
   waitlist_count: number | string;
 }
 
+interface MaintenanceStatusRow {
+  room_id: number | string;
+  ends_at: number | string;
+  reason: string;
+}
+
+interface NextBookingRow {
+  room_id: number | string;
+  start_at: number | string;
+}
+
 export async function listRooms(): Promise<Room[]> {
   await ensureDatabase();
   const rows = await query<RoomRow>("SELECT * FROM rooms ORDER BY floor ASC, name ASC");
@@ -33,7 +44,7 @@ export async function getRoomById(roomId: number): Promise<Room | null> {
 
 export async function listRoomViews(now: number): Promise<RoomView[]> {
   await ensureDatabase();
-  const [rooms, rows, waitlistRows] = await Promise.all([
+  const [rooms, rows, waitlistRows, maintenanceRows, nextBookingRows] = await Promise.all([
     query<RoomRow>("SELECT * FROM rooms ORDER BY floor ASC, name ASC"),
     query<CurrentBookingRow>(
       `SELECT b.room_id, b.start_at, b.end_at, b.status,
@@ -51,6 +62,16 @@ export async function listRoomViews(now: number): Promise<RoomView[]> {
        WHERE status IN ('waiting', 'offered')
        GROUP BY room_id`,
     ),
+    query<MaintenanceStatusRow>(
+      `SELECT DISTINCT ON (room_id) room_id, ends_at, reason
+       FROM room_maintenance WHERE starts_at <= $1 AND ends_at > $1
+       ORDER BY room_id, ends_at ASC`, [now],
+    ),
+    query<NextBookingRow>(
+      `SELECT DISTINCT ON (room_id) room_id, start_at FROM bookings
+       WHERE status IN ('pending','active') AND start_at > $1
+       ORDER BY room_id, start_at ASC`, [now],
+    ),
   ]);
   const currentBookings = rows.map((row) => ({
     roomId: Number(row.room_id),
@@ -63,11 +84,26 @@ export async function listRoomViews(now: number): Promise<RoomView[]> {
   const waitlistCounts = new Map(
     waitlistRows.map((row) => [Number(row.room_id), Number(row.waitlist_count)]),
   );
+  const activeMaintenance = new Map(maintenanceRows.map((row) => [Number(row.room_id), row]));
+  const nextBookings = new Map(nextBookingRows.map((row) => [Number(row.room_id), Number(row.start_at)]));
 
   return rooms.map((row) => {
     const room = toRoom(row);
     const currentBooking =
       currentBookings.find((booking) => booking.roomId === room.id)?.booking ?? null;
+    const maintenance = activeMaintenance.get(room.id);
+    if (row.enabled === false || maintenance) {
+      return {
+        ...room,
+        status: "closed",
+        currentBooking: null,
+        checkinDeadline: null,
+        waitlistCount: waitlistCounts.get(room.id) ?? 0,
+        closureEndsAt: row.enabled === false ? null : Number(maintenance?.ends_at),
+        closureReason: row.enabled === false ? "ปิดใช้งานชั่วคราว" : maintenance?.reason ?? null,
+        nextBookingAt: nextBookings.get(room.id) ?? null,
+      };
+    }
     if (!currentBooking) {
       return {
         ...room,
@@ -75,6 +111,7 @@ export async function listRoomViews(now: number): Promise<RoomView[]> {
         currentBooking: null,
         checkinDeadline: null,
         waitlistCount: waitlistCounts.get(room.id) ?? 0,
+        nextBookingAt: nextBookings.get(room.id) ?? null,
       };
     }
 
@@ -85,6 +122,7 @@ export async function listRoomViews(now: number): Promise<RoomView[]> {
       currentBooking,
       checkinDeadline: isPending ? currentBooking.startAt + CHECKIN_WINDOW_MS : null,
       waitlistCount: waitlistCounts.get(room.id) ?? 0,
+      nextBookingAt: nextBookings.get(room.id) ?? null,
     };
   });
 }

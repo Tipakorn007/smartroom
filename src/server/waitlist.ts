@@ -11,10 +11,12 @@ import {
   ensureDatabase,
   query,
   queryForRoom,
+  queryForRoomAndUser,
   toBooking,
   type BookingRow,
 } from "./db.ts";
 import { HttpError } from "./http.ts";
+import { assertUserCanBook } from "./booking-policy.ts";
 import { getRoomById, listRoomViews } from "./rooms.ts";
 
 interface WaitlistRow {
@@ -73,6 +75,10 @@ export async function joinWaitlist(input: {
   await ensureDatabase();
   const room = await getRoomById(input.roomId);
   if (!room) throw new HttpError(404, "ไม่พบห้องที่เลือก");
+  const roomControl = await query<{ enabled: boolean }>("SELECT enabled FROM rooms WHERE id=$1", [input.roomId]);
+  if (roomControl[0]?.enabled === false) throw new HttpError(409, "ห้องนี้ปิดใช้งานอยู่");
+  const now = Date.now();
+  await assertUserCanBook(input.userId, now);
   const existingBooking = await query(
     `SELECT id FROM bookings
      WHERE room_id = $1 AND user_id = $2 AND status IN ('pending', 'active')
@@ -83,7 +89,6 @@ export async function joinWaitlist(input: {
     throw new HttpError(409, "คุณมีการจองห้องนี้อยู่แล้ว");
   }
 
-  const now = Date.now();
   try {
     const rows = await queryForRoom<{ id: number | string }>(
       input.roomId,
@@ -93,7 +98,7 @@ export async function joinWaitlist(input: {
          EXISTS (
            SELECT 1 FROM bookings
            WHERE room_id = $1 AND status IN ('pending', 'active')
-             AND start_at <= $5 AND end_at > $5
+             AND end_at > $5
          ) OR EXISTS (
            SELECT 1 FROM waitlist
            WHERE room_id = $1 AND status IN ('waiting', 'offered')
@@ -151,16 +156,18 @@ export async function acceptWaitlistOffer(
     if (room) return { booking, room };
   }
 
-  const eligible = await query<{ room_id: number | string }>(
-    `SELECT room_id FROM waitlist
+  const eligible = await query<{ room_id: number | string; booking_id: number | string }>(
+    `SELECT room_id, booking_id FROM waitlist
      WHERE id = $1 AND user_id = $2 AND status = 'offered' AND offer_expires_at > $3`,
     [waitlistId, userId, now],
   );
   const roomId = eligible[0] ? Number(eligible[0].room_id) : null;
   if (roomId === null) throw new HttpError(409, "ข้อเสนอหมดเวลาหรือไม่พบคิวของคุณ");
 
-  const rows = await queryForRoom<BookingRow>(
+  await assertUserCanBook(userId, now, Number(eligible[0]?.booking_id));
+  const rows = await queryForRoomAndUser<BookingRow>(
     roomId,
+    userId,
     `WITH updated_booking AS (
        UPDATE bookings b
        SET start_at = $3, end_at = $3 + w.slot * 60000
@@ -168,6 +175,10 @@ export async function acceptWaitlistOffer(
        WHERE w.id = $1 AND w.user_id = $2 AND w.status = 'offered'
          AND w.offer_expires_at > $3 AND w.booking_id = b.id
          AND b.status = 'pending'
+         AND NOT EXISTS (
+           SELECT 1 FROM bookings other WHERE other.user_id=$2
+             AND other.status IN ('pending','active') AND other.id<>b.id
+         )
        RETURNING b.*
      ),
      accepted AS (
@@ -233,9 +244,27 @@ export async function offerNextWaitlist(roomId: number, now: number): Promise<vo
          FROM waitlist w
          WHERE w.room_id = $1 AND w.status = 'waiting'
            AND NOT EXISTS (
+             SELECT 1 FROM bookings existing
+             WHERE existing.user_id=w.user_id AND existing.status IN ('pending','active')
+           )
+           AND NOT EXISTS (
+             SELECT 1 FROM bookings strike
+             WHERE strike.user_id=w.user_id AND strike.no_show=TRUE
+               AND strike.released_at > $2 - 30 * 24 * 60 * 60 * 1000
+             GROUP BY strike.user_id
+             HAVING COUNT(*) >= 3 AND MAX(strike.released_at) + 24 * 60 * 60 * 1000 > $2
+           )
+           AND NOT EXISTS (
              SELECT 1 FROM bookings b
-             WHERE b.room_id = $1 AND b.status IN ('pending', 'active')
-               AND b.start_at <= $2 AND b.end_at > $2
+           WHERE b.room_id = $1 AND b.status IN ('pending', 'active')
+             AND b.end_at > $2
+           )
+           AND NOT EXISTS (
+             SELECT 1 FROM rooms r WHERE r.id=$1 AND r.enabled=FALSE
+           )
+           AND NOT EXISTS (
+             SELECT 1 FROM room_maintenance m
+             WHERE m.room_id=$1 AND m.starts_at < $2 + w.slot * 60000 AND m.ends_at > $2
            )
            AND NOT EXISTS (
              SELECT 1 FROM waitlist offered

@@ -12,6 +12,7 @@ import {
   PRESENCE_REMINDER_WINDOW_MS,
 } from "../shared/constants";
 import type {
+  BookingHistoryEntry,
   BookingWithRoom,
   LiveSnapshot,
   Room,
@@ -36,8 +37,9 @@ import { renderRecommendView } from "./views/recommend";
 import { renderRoomsView } from "./views/rooms";
 import { renderStatsView } from "./views/stats";
 import { showAcceptedOffer, openWaitlistDialog } from "./views/waitlist";
+import { renderMyBookingsView } from "./views/my-bookings";
 
-type Tab = "rooms" | "recommend" | "stats";
+type Tab = "rooms" | "recommend" | "stats" | "my-bookings";
 
 const state: {
   tab: Tab;
@@ -49,6 +51,8 @@ const state: {
   userId: string;
   myWaitlists: WaitlistEntry[];
   myBookings: BookingWithRoom[];
+  bookingHistory: BookingHistoryEntry[];
+  waitlistHistory: WaitlistEntry[];
   initialized: boolean;
 } = {
   tab: "rooms",
@@ -60,6 +64,8 @@ const state: {
   userId: "",
   myWaitlists: [],
   myBookings: [],
+  bookingHistory: [],
+  waitlistHistory: [],
   initialized: false,
 };
 
@@ -115,6 +121,7 @@ function buildShell(root: HTMLElement): void {
     { id: "recommend", label: "แนะนำห้อง" },
     { id: "stats", label: "สถิติ" },
   ];
+  tabs.push({ id: "my-bookings", label: "การจองของฉัน" });
   for (const tab of tabs) {
     const button = el("button", {
       class: `tab${state.tab === tab.id ? " is-active" : ""}`,
@@ -179,6 +186,8 @@ async function switchTab(tab: Tab, nav: HTMLElement): Promise<void> {
   render();
   if (tab === "stats") {
     await loadStats();
+  } else if (tab === "my-bookings") {
+    await loadBookingHistory();
   } else {
     await refreshRooms();
   }
@@ -221,6 +230,11 @@ function render(): void {
     renderRecommendView(contentElement, (room: Room) =>
       openBookingDialog(room, state.userId, () => void refreshRooms()),
     );
+    return;
+  }
+
+  if (state.tab === "my-bookings") {
+    renderMyBookingsView(contentElement, state.bookingHistory, state.waitlistHistory, state.rooms, editBooking, cancelBooking);
     return;
   }
 
@@ -296,6 +310,39 @@ function startPolling(): void {
 async function refreshAfterChange(): Promise<void> {
   await refreshRooms();
   if (state.tab === "stats") await loadStats();
+  if (state.tab === "my-bookings") await loadBookingHistory();
+}
+
+async function loadBookingHistory(): Promise<void> {
+  try {
+    const history = await api.bookingHistory(state.userId);
+    state.bookingHistory = history.bookings;
+    state.waitlistHistory = history.waitlists;
+    if (state.tab === "my-bookings") render();
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : "โหลดประวัติไม่สำเร็จ", "warn");
+  }
+}
+
+async function editBooking(token: string, roomId: number, durationMinutes: number, startAt: number): Promise<void> {
+  try {
+    await api.editBooking(token, { roomId, durationMinutes, startAt });
+    showToast("แก้ไขการจองแล้ว");
+    await Promise.all([loadBookingHistory(), refreshRooms()]);
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : "แก้ไขการจองไม่สำเร็จ", "warn");
+  }
+}
+
+async function cancelBooking(token: string): Promise<void> {
+  if (!window.confirm("ยืนยันยกเลิกการจองนี้หรือไม่?")) return;
+  try {
+    await api.cancelBooking(token);
+    showToast("ยกเลิกการจองแล้ว");
+    await Promise.all([loadBookingHistory(), refreshRooms()]);
+  } catch (error) {
+    showToast(error instanceof Error ? error.message : "ยกเลิกการจองไม่สำเร็จ", "warn");
+  }
 }
 
 function startLiveEvents(): void {
