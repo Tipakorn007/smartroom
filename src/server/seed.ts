@@ -1,5 +1,5 @@
 /**
- * Seed data: nine sample rooms and sample booking history.
+ * Seed data: twenty sample rooms and sample booking history.
  * Deterministic tokens keep initialization idempotent across serverless instances.
  */
 
@@ -27,6 +27,17 @@ const SEED_ROOMS: SeedRoom[] = [
   { id: 7, name: "C301", floor: 3, capacity: 12, hasPower: true, hasWhiteboard: true, quietLevel: "group" },
   { id: 8, name: "C302", floor: 3, capacity: 6, hasPower: true, hasWhiteboard: false, quietLevel: "quiet" },
   { id: 9, name: "C303", floor: 3, capacity: 10, hasPower: true, hasWhiteboard: true, quietLevel: "normal" },
+  { id: 10, name: "A104", floor: 1, capacity: 8, hasPower: true, hasWhiteboard: true, quietLevel: "normal" },
+  { id: 11, name: "B204", floor: 2, capacity: 6, hasPower: true, hasWhiteboard: true, quietLevel: "quiet" },
+  { id: 12, name: "C304", floor: 3, capacity: 4, hasPower: false, hasWhiteboard: true, quietLevel: "group" },
+  { id: 13, name: "D401", floor: 4, capacity: 2, hasPower: true, hasWhiteboard: true, quietLevel: "quiet" },
+  { id: 14, name: "D402", floor: 4, capacity: 6, hasPower: true, hasWhiteboard: false, quietLevel: "normal" },
+  { id: 15, name: "D403", floor: 4, capacity: 8, hasPower: false, hasWhiteboard: true, quietLevel: "group" },
+  { id: 16, name: "D404", floor: 4, capacity: 12, hasPower: true, hasWhiteboard: true, quietLevel: "normal" },
+  { id: 17, name: "E501", floor: 5, capacity: 4, hasPower: true, hasWhiteboard: false, quietLevel: "quiet" },
+  { id: 18, name: "E502", floor: 5, capacity: 8, hasPower: true, hasWhiteboard: true, quietLevel: "group" },
+  { id: 19, name: "E503", floor: 5, capacity: 6, hasPower: false, hasWhiteboard: true, quietLevel: "normal" },
+  { id: 20, name: "E504", floor: 5, capacity: 10, hasPower: true, hasWhiteboard: true, quietLevel: "quiet" },
 ];
 
 const MINUTE = 60 * 1000;
