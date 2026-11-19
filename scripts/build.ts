@@ -17,3 +17,15 @@ await Promise.all([
   copyFile("./src/client/index.html", "./public/index.html"),
   copyFile("./src/client/styles.css", "./public/styles.css"),
 ]);
+
+const apiResult = await Bun.build({
+  entrypoints: ["./api/_handler.ts"],
+  outdir: "./api",
+  target: "node",
+  minify: true,
+});
+
+if (!apiResult.success) {
+  for (const log of apiResult.logs) console.error(log);
+  throw new Error("สร้าง API bundle ไม่สำเร็จ");
+}

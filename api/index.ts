@@ -1,4 +1,4 @@
-import { handleApi } from "../src/server/api-handler.ts";
+import { handleApi } from "./_handler.js";
 
 export function GET(request: Request): Promise<Response> {
   return handleApi(request);
