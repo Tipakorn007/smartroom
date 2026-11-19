@@ -4,8 +4,8 @@
  */
 
 import { neon } from "@neondatabase/serverless";
-import type { Booking, BookingStatus, QuietLevel, Room } from "../shared/types";
-import { seedIfEmpty } from "./seed";
+import type { Booking, BookingStatus, QuietLevel, Room } from "../shared/types.ts";
+import { seedIfEmpty } from "./seed.ts";
 
 export interface RoomRow {
   id: number;

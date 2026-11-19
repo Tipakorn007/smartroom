@@ -3,17 +3,17 @@
  */
 
 import QRCode from "qrcode";
-import type { CreateBookingResponse, RecommendRequest } from "../shared/types";
+import type { CreateBookingResponse, RecommendRequest } from "../shared/types.ts";
 import {
   checkIn,
   createBooking,
   findBookingByToken,
   releaseExpiredBookings,
-} from "./bookings";
-import { HttpError, json, readJsonBody } from "./http";
-import { recommendRooms } from "./recommend";
-import { listRoomViews } from "./rooms";
-import { getStats } from "./stats";
+} from "./bookings.ts";
+import { HttpError, json, readJsonBody } from "./http.ts";
+import { recommendRooms } from "./recommend.ts";
+import { listRoomViews } from "./rooms.ts";
+import { getStats } from "./stats.ts";
 import {
   validateDuration,
   validateFlag,
@@ -21,7 +21,7 @@ import {
   validateRoomId,
   validateToken,
   validateUserName,
-} from "./validation";
+} from "./validation.ts";
 
 async function routeApi(request: Request, url: URL): Promise<Response> {
   const pathname =

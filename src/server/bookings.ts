@@ -4,11 +4,11 @@
  */
 
 import { randomBytes } from "node:crypto";
-import { CHECKIN_WINDOW_MS } from "../shared/constants";
-import type { Booking, BookingWithRoom, Room } from "../shared/types";
-import { ensureDatabase, query, toBooking, type BookingRow, type RoomRow } from "./db";
-import { HttpError } from "./http";
-import { getRoomById } from "./rooms";
+import { CHECKIN_WINDOW_MS } from "../shared/constants.ts";
+import type { Booking, BookingWithRoom, Room } from "../shared/types.ts";
+import { ensureDatabase, query, toBooking, type BookingRow, type RoomRow } from "./db.ts";
+import { HttpError } from "./http.ts";
+import { getRoomById } from "./rooms.ts";
 
 interface CreateBookingInput {
   roomId: number;

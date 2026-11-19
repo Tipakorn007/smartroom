@@ -2,9 +2,9 @@
  * Facility statistics, computed directly from persisted booking data.
  */
 
-import type { PeakHour, RoomUsage, StatsResponse } from "../shared/types";
-import { ensureDatabase, query } from "./db";
-import { listRoomViews } from "./rooms";
+import type { PeakHour, RoomUsage, StatsResponse } from "../shared/types.ts";
+import { ensureDatabase, query } from "./db.ts";
+import { listRoomViews } from "./rooms.ts";
 
 async function countRows(statement: string): Promise<number> {
   const rows = await query<{ value: number | string }>(statement);

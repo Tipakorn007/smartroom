@@ -2,9 +2,9 @@
  * Room data and current status. Status is derived from active bookings and time.
  */
 
-import { CHECKIN_WINDOW_MS } from "../shared/constants";
-import type { Room, RoomView } from "../shared/types";
-import { ensureDatabase, query, toBooking, toRoom, type BookingRow, type RoomRow } from "./db";
+import { CHECKIN_WINDOW_MS } from "../shared/constants.ts";
+import type { Room, RoomView } from "../shared/types.ts";
+import { ensureDatabase, query, toBooking, toRoom, type BookingRow, type RoomRow } from "./db.ts";
 
 export async function listRooms(): Promise<Room[]> {
   await ensureDatabase();

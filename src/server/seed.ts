@@ -3,9 +3,9 @@
  * Deterministic tokens keep initialization idempotent across serverless instances.
  */
 
-import { CHECKIN_WINDOW_MS } from "../shared/constants";
-import type { QuietLevel } from "../shared/types";
-import { query } from "./db";
+import { CHECKIN_WINDOW_MS } from "../shared/constants.ts";
+import type { QuietLevel } from "../shared/types.ts";
+import { query } from "./db.ts";
 
 interface SeedRoom {
   id: number;

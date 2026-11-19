@@ -15,9 +15,9 @@
  * เพราะบางวันห้องที่ครบทุกอย่างไม่ว่าง ผู้ใช้ยังควรได้ตัวเลือกที่ดีที่สุดเท่าที่มี
  */
 
-import type { Recommendation, RecommendRequest } from "../shared/types";
-import { listRoomViews } from "./rooms";
-import { ensureDatabase } from "./db";
+import type { Recommendation, RecommendRequest } from "../shared/types.ts";
+import { listRoomViews } from "./rooms.ts";
+import { ensureDatabase } from "./db.ts";
 
 const MISSING_FEATURE_PENALTY = 40;
 const SEAT_WASTE_WEIGHT = 2;

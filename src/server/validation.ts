@@ -10,8 +10,8 @@ import {
   MAX_PEOPLE,
   MIN_NAME_LENGTH,
   MIN_PEOPLE,
-} from "../shared/constants";
-import { HttpError } from "./http";
+} from "../shared/constants.ts";
+import { HttpError } from "./http.ts";
 
 /**
  * ชื่อผู้จอง: ตัดช่องว่างหัวท้าย ยุบช่องว่างซ้ำ และจำกัดอักขระ
