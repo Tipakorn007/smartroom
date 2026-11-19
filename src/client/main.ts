@@ -99,13 +99,15 @@ function buildShell(root: HTMLElement): void {
   const header = el("header", { class: "site-header" }, [
     el("div", { class: "header-inner" }, [
       el("div", { class: "brand" }, [
-        el("h1", { class: "brand-logo-heading" }, [
-          el("img", {
-            class: "brand-logo",
-            attrs: { src: "/smartroom-logo.png", alt: "SmartRoom" },
-          }),
-        ]),
+        el("img", {
+          class: "brand-mark",
+          attrs: { src: "/smartroom-icon.png", alt: "", "aria-hidden": "true" },
+        }),
         el("div", { class: "brand-text" }, [
+          el("h1", {}, [
+            el("span", { text: "Smart" }),
+            el("span", { class: "brand-accent", text: "Room" }),
+          ]),
           el("p", { text: "ห้องติว · อาคารเรียนรวม" }),
         ]),
       ]),

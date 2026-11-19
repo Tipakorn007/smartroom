@@ -147,22 +147,21 @@ a {
   margin-right: auto;
 }
 
-.brand-logo-heading {
-  margin: 0;
-  line-height: 0;
-}
-
-.brand-logo {
+.brand-mark {
   display: block;
-  width: 160px;
+  width: 38px;
   height: 38px;
-  object-fit: contain;
-  border-radius: 6px;
+  flex: 0 0 auto;
+  object-fit: cover;
+  border-radius: 12px;
 }
 
-.brand-text {
-  display: flex;
-  align-items: center;
+.brand-text h1 {
+  font-size: 1.12rem;
+}
+
+.brand-accent {
+  color: var(--primary);
 }
 
 .brand-text p {

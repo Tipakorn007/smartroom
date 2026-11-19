@@ -38,13 +38,15 @@ export async function renderCheckinPage(root: HTMLElement, token: string): Promi
         href: "/",
         attrs: { "aria-label": "กลับหน้าหลัก SmartRoom" },
       }, [
-        el("h1", { class: "brand-logo-heading" }, [
-          el("img", {
-            class: "brand-logo",
-            attrs: { src: "/smartroom-logo.png", alt: "SmartRoom" },
-          }),
-        ]),
+        el("img", {
+          class: "brand-mark",
+          attrs: { src: "/smartroom-icon.png", alt: "", "aria-hidden": "true" },
+        }),
         el("span", { class: "brand-text" }, [
+          el("h1", {}, [
+            el("span", { text: "Smart" }),
+            el("span", { class: "brand-accent", text: "Room" }),
+          ]),
           el("p", { text: "เช็กอินห้องติว" }),
         ]),
       ]),
