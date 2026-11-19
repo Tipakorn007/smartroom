@@ -1207,6 +1207,45 @@ dialog.modal::backdrop {
   gap: 0.65rem;
 }
 
+.my-bookings-page {
+  width: min(100%, 64rem);
+  margin-inline: auto;
+  gap: 1rem;
+}
+
+.my-booking-card {
+  min-width: 0;
+  gap: 0.9rem;
+  padding: clamp(0.9rem, 2.5vw, 1.25rem);
+}
+
+.my-booking-heading {
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.my-booking-heading h3 {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.my-booking-time {
+  margin: 0;
+  padding: 0.7rem 0.8rem;
+  border-radius: 0.7rem;
+  background: var(--surface-muted);
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.booking-edit-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(7rem, 0.65fr) minmax(13rem, 1fr) auto;
+  align-items: stretch;
+  width: 100%;
+}
+
 .booking-edit-form input,
 .booking-edit-form select,
 .room-admin-form input,
@@ -1219,6 +1258,23 @@ dialog.modal::backdrop {
   border: 1px solid var(--border);
   border-radius: 0.65rem;
   font: inherit;
+}
+
+.booking-edit-form input,
+.booking-edit-form select {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.booking-edit-form > button,
+.booking-cancel-button {
+  min-height: 2.65rem;
+  white-space: nowrap;
+}
+
+.booking-cancel-button {
+  align-self: flex-start;
 }
 
 .room-admin-checkbox {
@@ -1811,5 +1867,40 @@ dialog.modal::backdrop {
   .site-footer {
     margin-top: 2rem;
     padding: 1rem 0.9rem 2rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .booking-edit-form {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .booking-edit-form input[type="datetime-local"] {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 560px) {
+  .my-booking-card {
+    padding: 0.9rem;
+  }
+
+  .my-booking-heading {
+    align-items: flex-start;
+  }
+
+  .booking-edit-form {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.55rem;
+  }
+
+  .booking-edit-form input[type="datetime-local"] {
+    grid-column: auto;
+  }
+
+  .booking-edit-form > button,
+  .booking-cancel-button {
+    width: 100%;
+    min-height: 44px;
   }
 }

@@ -15,7 +15,7 @@ export function renderMyBookingsView(
   onEdit: (token: string, roomId: number, durationMinutes: number, startAt: number) => void,
   onCancel: (token: string) => void,
 ): void {
-  const page = el("section", { class: "stack" }, [
+  const page = el("section", { class: "stack my-bookings-page" }, [
     el("div", { class: "section-heading" }, [
       el("p", { class: "eyebrow", text: "บัญชีในอุปกรณ์นี้" }),
       el("h2", { text: "การจองของฉัน" }),
@@ -29,12 +29,12 @@ export function renderMyBookingsView(
     const { booking, room } = entry;
     const status = entry.cancelled ? "ยกเลิกแล้ว" : booking.status === "pending" ? "รอเช็กอิน"
       : booking.status === "active" ? "กำลังใช้งาน" : booking.status === "released" ? "ไม่มาเช็กอิน" : "เสร็จสิ้น";
-    const card = el("article", { class: "card stack" }, [
-      el("div", { class: "card-heading-row" }, [
+    const card = el("article", { class: "card stack my-booking-card" }, [
+      el("div", { class: "card-heading-row my-booking-heading" }, [
         el("h3", { text: `ห้อง ${room.name}` }),
         el("span", { class: `badge${entry.cancelled ? " muted" : ""}`, text: status }),
       ]),
-      el("p", { class: "muted", text: `${formatDateTime(booking.startAt)} – ${formatDateTime(booking.endAt)}` }),
+      el("p", { class: "muted my-booking-time", text: `${formatDateTime(booking.startAt)} – ${formatDateTime(booking.endAt)}` }),
     ]);
 
     if (booking.status === "pending" && !entry.cancelled) {
@@ -76,7 +76,7 @@ export function renderMyBookingsView(
         event.preventDefault();
         onEdit(booking.token, Number(roomSelect.value), Number(duration.value), new Date(start.value).getTime());
       });
-      const cancel = el("button", { class: "button ghost", type: "button", text: "ยกเลิกการจอง" });
+      const cancel = el("button", { class: "button ghost booking-cancel-button", type: "button", text: "ยกเลิกการจอง" });
       cancel.addEventListener("click", () => onCancel(booking.token));
       card.append(editForm, cancel);
     }
