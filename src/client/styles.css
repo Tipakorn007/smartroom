@@ -62,8 +62,8 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: "Sarabun", "Noto Sans Thai", "Leelawadee UI", "Tahoma", system-ui, sans-serif;
-  font-size: 16px;
-  line-height: 1.65;
+  font-size: 17px;
+  line-height: 1.7;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -955,7 +955,7 @@ dialog.modal::backdrop {
 .room-kpi-label {
   grid-column: 1 / -1;
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: 0.78rem;
 }
 
 .room-kpi-value {
@@ -966,7 +966,7 @@ dialog.modal::backdrop {
 
 .room-kpi-unit {
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: 0.78rem;
 }
 
 .rooms-layout {
@@ -1012,7 +1012,7 @@ dialog.modal::backdrop {
 
 .floor-option-count {
   color: var(--text-muted);
-  font-size: 0.74rem;
+  font-size: 0.8rem;
   font-weight: 400;
 }
 
@@ -1023,7 +1023,7 @@ dialog.modal::backdrop {
   padding-top: 1rem;
   border-top: 1px solid var(--border);
   color: var(--text-muted);
-  font-size: 0.75rem;
+  font-size: 0.8rem;
 }
 
 .room-legend-item,
@@ -1074,7 +1074,7 @@ dialog.modal::backdrop {
   border-bottom: 1px solid var(--border);
   background: var(--surface-muted);
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: 0.78rem;
 }
 
 .room-row {
@@ -1098,7 +1098,7 @@ dialog.modal::backdrop {
 }
 
 .room-name .small {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
 }
 
 .room-features {
@@ -1109,7 +1109,7 @@ dialog.modal::backdrop {
 
 .room-feature {
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   white-space: nowrap;
 }
 
@@ -1142,7 +1142,7 @@ dialog.modal::backdrop {
 .room-status-detail,
 .room-status-countdown {
   color: var(--text-muted);
-  font-size: 0.72rem;
+  font-size: 0.78rem;
 }
 
 .room-status-countdown {
