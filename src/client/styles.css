@@ -147,20 +147,22 @@ a {
   margin-right: auto;
 }
 
-.brand-mark {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
-  display: grid;
-  place-items: center;
-  background: var(--primary);
-  color: var(--primary-contrast);
-  font-size: 1.15rem;
-  font-weight: 700;
+.brand-logo-heading {
+  margin: 0;
+  line-height: 0;
 }
 
-.brand-text h1 {
-  font-size: 1.12rem;
+.brand-logo {
+  display: block;
+  width: 160px;
+  height: 38px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+
+.brand-text {
+  display: flex;
+  align-items: center;
 }
 
 .brand-text p {
@@ -900,11 +902,6 @@ dialog.modal::backdrop {
 .tab.is-active {
   background: transparent;
   box-shadow: inset 0 -2px 0 var(--primary);
-}
-
-.brand-mark {
-  background: var(--surface-muted);
-  color: var(--text);
 }
 
 .container {

@@ -38,9 +38,13 @@ export async function renderCheckinPage(root: HTMLElement, token: string): Promi
         href: "/",
         attrs: { "aria-label": "กลับหน้าหลัก SmartRoom" },
       }, [
-        el("span", { class: "brand-mark", text: "SR", attrs: { "aria-hidden": "true" } }),
+        el("h1", { class: "brand-logo-heading" }, [
+          el("img", {
+            class: "brand-logo",
+            attrs: { src: "/smartroom-logo.png", alt: "SmartRoom" },
+          }),
+        ]),
         el("span", { class: "brand-text" }, [
-          el("h1", { text: "SmartRoom" }),
           el("p", { text: "เช็กอินห้องติว" }),
         ]),
       ]),

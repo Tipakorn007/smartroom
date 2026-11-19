@@ -99,9 +99,13 @@ function buildShell(root: HTMLElement): void {
   const header = el("header", { class: "site-header" }, [
     el("div", { class: "header-inner" }, [
       el("div", { class: "brand" }, [
-        el("span", { class: "brand-mark", text: "SR", attrs: { "aria-hidden": "true" } }),
+        el("h1", { class: "brand-logo-heading" }, [
+          el("img", {
+            class: "brand-logo",
+            attrs: { src: "/smartroom-logo.png", alt: "SmartRoom" },
+          }),
+        ]),
         el("div", { class: "brand-text" }, [
-          el("h1", { text: "SmartRoom" }),
           el("p", { text: "ห้องติว · อาคารเรียนรวม" }),
         ]),
       ]),

@@ -16,6 +16,8 @@ await mkdir("./public", { recursive: true });
 await Promise.all([
   copyFile("./src/client/index.html", "./public/index.html"),
   copyFile("./src/client/styles.css", "./public/styles.css"),
+  copyFile("./src/client/assets/smartroom-icon.png", "./public/smartroom-icon.png"),
+  copyFile("./src/client/assets/smartroom-logo.png", "./public/smartroom-logo.png"),
 ]);
 
 const apiResult = await Bun.build({
