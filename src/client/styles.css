@@ -27,8 +27,8 @@
   --primary: #238f92;
   --primary-hover: #17777b;
   --on-primary: #ffffff;
-  --primary-action: #238f92;
-  --primary-action-hover: #17777b;
+  --primary-action: #08717e;
+  --primary-action-hover: #075d68;
   --link: #08717e;
   --surface-muted: #edf6f4;
   --border: #c9dfda;
@@ -102,7 +102,7 @@ p {
 }
 
 a {
-  color: var(--primary);
+  color: var(--link);
 }
 
 .muted {
@@ -165,7 +165,7 @@ a {
 }
 
 .brand-accent {
-  color: var(--primary);
+  color: var(--link);
 }
 
 .brand-text p {
@@ -1031,7 +1031,7 @@ dialog.modal::backdrop {
 }
 
 .admin-section-tab.is-active .admin-section-icon {
-  background: var(--primary);
+  background: var(--primary-action);
   color: var(--on-primary);
 }
 
@@ -1148,7 +1148,7 @@ dialog.modal::backdrop {
 }
 
 .eyebrow {
-  color: var(--primary);
+  color: var(--link);
   font-size: 0.9rem;
   font-weight: 700;
   letter-spacing: 0.04em;
@@ -1417,7 +1417,7 @@ dialog.modal::backdrop {
 }
 
 .status-text-offered {
-  color: var(--primary);
+  color: var(--link);
 }
 
 .status-text-closed {
@@ -1633,7 +1633,7 @@ dialog.modal::backdrop {
 }
 
 .admin-expand {
-  color: var(--primary);
+  color: var(--link);
   font-size: 0.9rem;
   white-space: nowrap;
 }
