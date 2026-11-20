@@ -36,7 +36,6 @@ import { renderRecommendView } from "./views/recommend";
 import { renderRoomsView } from "./views/rooms";
 import { showAcceptedOffer, openWaitlistDialog } from "./views/waitlist";
 import { renderMyBookingsView } from "./views/my-bookings";
-
 type Tab = "rooms" | "recommend" | "my-bookings";
 
 const state: {
@@ -65,7 +64,6 @@ const state: {
 
 let noticesElement: HTMLElement | null = null;
 let contentElement: HTMLElement | null = null;
-let eventSource: EventSource | null = null;
 let noticesKey = "";
 
 async function bootstrap(): Promise<void> {
@@ -89,7 +87,6 @@ async function bootstrap(): Promise<void> {
     showToast("เบราว์เซอร์ไม่สามารถบันทึกคิวได้ คิวนี้จะใช้ได้เฉพาะหน้าเว็บที่เปิดอยู่นี้", "warn");
   }
   await refreshRooms();
-  startLiveEvents();
   startPolling();
 }
 
@@ -134,12 +131,6 @@ function buildShell(root: HTMLElement): void {
     });
     nav.append(button);
   }
-  nav.append(el("a", {
-    class: "tab room-map-nav-link",
-    attrs: { href: "/map", "aria-label": "เปิดแผนผังห้องแบบสด" },
-    text: "แผนผังสด",
-  }));
-
   const header = el("header", { class: "site-header" }, [
     el("div", { class: "header-inner" }, [
       el("div", { class: "brand" }, [
@@ -167,6 +158,7 @@ function buildShell(root: HTMLElement): void {
   });
   contentElement = el("div", { class: "page-content" });
   main.append(noticesElement, contentElement);
+  renderLoadingSkeleton(contentElement);
   const footer = el("footer", { class: "site-footer" }, [
     el("p", {
       text: "SmartRoom · ห้องที่จองแล้วไม่มาใช้จะถูกปล่อยคืนอัตโนมัติใน 15 นาที",
@@ -174,6 +166,44 @@ function buildShell(root: HTMLElement): void {
   ]);
 
   root.replaceChildren(header, main, footer);
+}
+
+function renderLoadingSkeleton(container: HTMLElement): void {
+  const skeleton = el("section", {
+    class: "loading-shell",
+    attrs: { "aria-label": "กำลังโหลดข้อมูลห้อง", "aria-busy": "true" },
+  });
+
+  const hero = el("div", { class: "loading-hero" }, [
+    el("div", { class: "loading-hero-copy" }, [
+      el("span", { class: "skeleton skeleton-eyebrow" }),
+      el("span", { class: "skeleton skeleton-title" }),
+      el("span", { class: "skeleton skeleton-line" }),
+    ]),
+    el("div", { class: "loading-kpis" }, [
+      el("span", { class: "skeleton skeleton-kpi" }),
+      el("span", { class: "skeleton skeleton-kpi" }),
+      el("span", { class: "skeleton skeleton-kpi" }),
+    ]),
+  ]);
+
+  const floors = el("div", { class: "loading-floors" });
+  for (let index = 0; index < 5; index += 1) {
+    floors.append(el("span", { class: "skeleton skeleton-floor" }));
+  }
+
+  const rows = el("div", { class: "loading-room-list" });
+  for (let index = 0; index < 6; index += 1) {
+    rows.append(el("div", { class: "loading-room-row" }, [
+      el("span", { class: "skeleton skeleton-room-name" }),
+      el("span", { class: "skeleton skeleton-room-feature" }),
+      el("span", { class: "skeleton skeleton-room-status" }),
+      el("span", { class: "skeleton skeleton-room-button" }),
+    ]));
+  }
+
+  skeleton.append(hero, floors, rows);
+  container.replaceChildren(skeleton);
 }
 
 async function switchTab(tab: Tab, nav: HTMLElement): Promise<void> {
@@ -236,7 +266,6 @@ function render(): void {
     renderMyBookingsView(contentElement, state.bookingHistory, state.waitlistHistory, state.rooms, editBooking, cancelBooking);
     return;
   }
-
 }
 
 function retryCard(title: string, message: string, onRetry: () => void): HTMLElement {
@@ -266,8 +295,6 @@ async function refreshRooms(): Promise<void> {
       state.floor = firstAvailable?.floor ?? snapshot.rooms[0]?.floor ?? 1;
     }
 
-    // ถ้าอยู่แท็บอื่น ไม่ต้องวาดใหม่ทับฟอร์มที่ผู้ใช้กำลังกรอก
-    if (state.tab === "rooms") render();
   } catch (error) {
     const message = error instanceof Error ? error.message : "โหลดข้อมูลห้องไม่สำเร็จ";
     const shouldNotify = state.roomsError !== message;
@@ -327,19 +354,6 @@ async function cancelBooking(token: string): Promise<void> {
   } catch (error) {
     showToast(error instanceof Error ? error.message : "ยกเลิกการจองไม่สำเร็จ", "warn");
   }
-}
-
-function startLiveEvents(): void {
-  eventSource?.close();
-  eventSource = new EventSource(`/api/events?userId=${encodeURIComponent(state.userId)}`);
-  eventSource.addEventListener("message", (event: MessageEvent<string>) => {
-    try {
-      applyLiveSnapshot(JSON.parse(event.data) as LiveSnapshot);
-      state.roomsError = null;
-    } catch (error) {
-      console.error("[client] อ่านข้อมูล live update ไม่สำเร็จ:", error);
-    }
-  });
 }
 
 function applyLiveSnapshot(snapshot: LiveSnapshot): void {

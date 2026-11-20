@@ -290,7 +290,7 @@ export async function offerNextWaitlist(roomId: number, now: number): Promise<vo
            booking_id = b.id
        FROM offered_booking b
        WHERE w.id = (SELECT id FROM candidate) AND w.status = 'waiting'
-       RETURNING w.id`,
+       RETURNING w.id,w.user_id`,
       [roomId, now, token, WAITLIST_OFFER_WINDOW_MS],
     );
   } catch (error) {

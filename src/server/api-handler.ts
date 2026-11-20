@@ -3,7 +3,11 @@
  */
 
 import QRCode from "qrcode";
-import type { CreateBookingResponse, QuietLevel, RecommendRequest } from "../shared/types.ts";
+import type {
+  CreateBookingResponse,
+  QuietLevel,
+  RecommendRequest,
+} from "../shared/types.ts";
 import {
   checkIn,
   cancelPendingBooking,
@@ -101,7 +105,8 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
       if (startsAt <= Date.now() || endsAt <= startsAt || endsAt > Date.now() + 30 * 24 * 60 * 60 * 1000) {
         throw new HttpError(400, "ช่วงปิดปรับปรุงต้องเริ่มในอนาคตและไม่เกิน 30 วัน");
       }
-      return json(await addRoomMaintenance(roomId, startsAt, endsAt, validateUserName(body.reason)), 201);
+      const maintenance = await addRoomMaintenance(roomId, startsAt, endsAt, validateUserName(body.reason));
+      return json(maintenance, 201);
     }
     if (maintenanceMatch && method === "DELETE" && maintenanceMatch[2]) {
       await removeRoomMaintenance(validateRoomId(maintenanceMatch[1]), validateRecordId(maintenanceMatch[2]));

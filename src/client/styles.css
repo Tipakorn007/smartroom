@@ -48,7 +48,6 @@
 
 * {
   box-sizing: border-box;
-  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
 }
 
 body {
@@ -190,12 +189,6 @@ a {
   box-shadow: var(--shadow);
 }
 
-.tab.room-map-nav-link {
-  display: inline-flex;
-  align-items: center;
-  color: var(--primary);
-  text-decoration: none;
-}
 
 .tab:focus-visible,
 .button:focus-visible,
@@ -441,10 +434,6 @@ a {
 .button.primary {
   background: var(--primary-action);
   color: var(--on-primary);
-}
-
-.button.primary:hover {
-  background: var(--primary-action-hover);
 }
 
 .button.ghost {
@@ -813,6 +802,171 @@ dialog.modal::backdrop {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/* ---------- Loading skeleton ---------- */
+
+.loading-shell {
+  display: grid;
+  gap: 1.1rem;
+  min-height: 420px;
+  animation: soft-rise 260ms ease-out both;
+}
+
+.loading-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 1.25rem;
+  min-height: 128px;
+  padding: 1.1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--primary) 8%, var(--surface)), var(--surface));
+}
+
+.loading-hero-copy,
+.loading-kpis,
+.loading-floors,
+.loading-room-list {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.loading-hero-copy {
+  align-content: start;
+  max-width: 520px;
+}
+
+.loading-kpis {
+  grid-template-columns: repeat(3, 88px);
+}
+
+.loading-floors {
+  grid-template-columns: repeat(5, minmax(90px, 1fr));
+}
+
+.loading-room-list {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  gap: 0;
+}
+
+.loading-room-row {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr 1fr 86px;
+  align-items: center;
+  gap: 1rem;
+  min-height: 78px;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.loading-room-row:last-child {
+  border-bottom: 0;
+}
+
+.skeleton {
+  position: relative;
+  display: block;
+  overflow: hidden;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--border) 72%, var(--surface));
+}
+
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--surface) 88%, transparent),
+    transparent
+  );
+  animation: skeleton-shimmer 1.35s ease-in-out infinite;
+}
+
+.skeleton-eyebrow {
+  width: 150px;
+  height: 11px;
+}
+
+.skeleton-title {
+  width: min(280px, 70%);
+  height: 30px;
+  margin-top: 0.15rem;
+}
+
+.skeleton-line {
+  width: min(460px, 92%);
+  height: 14px;
+}
+
+.skeleton-kpi {
+  height: 76px;
+  border-radius: 12px;
+}
+
+.skeleton-floor {
+  height: 58px;
+  border-radius: 12px;
+}
+
+.skeleton-room-name {
+  width: 58%;
+  height: 18px;
+}
+
+.skeleton-room-feature {
+  width: 82%;
+  height: 22px;
+}
+
+.skeleton-room-status {
+  width: 74%;
+  height: 18px;
+}
+
+.skeleton-room-button {
+  width: 86px;
+  height: 38px;
+  border-radius: 10px;
+}
+
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (max-width: 760px) {
+  .loading-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .loading-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .loading-floors {
+    grid-template-columns: repeat(5, minmax(72px, 1fr));
+    overflow-x: auto;
+  }
+
+  .loading-room-row {
+    grid-template-columns: minmax(0, 1fr) 86px;
+  }
+
+  .skeleton-room-feature,
+  .skeleton-room-status {
+    display: none;
   }
 }
 
@@ -2093,10 +2247,6 @@ dialog.modal::backdrop {
   transition: transform 160ms ease, border-color 220ms ease, background-color 220ms ease, box-shadow 160ms ease;
 }
 
-.room-map-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow);
-}
 
 .room-map-card:focus-visible,
 .room-map-floor:focus-visible {
@@ -2395,5 +2545,232 @@ dialog.modal::backdrop {
     grid-row: 2;
     justify-content: space-between;
     flex-wrap: wrap;
+  }
+}
+
+/* ---------- Visual polish ---------- */
+
+body {
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.site-header {
+  background: var(--surface);
+  box-shadow: 0 1px 0 color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.header-inner {
+  min-height: 72px;
+}
+
+.brand-mark {
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--primary) 22%, transparent);
+  transition: transform 220ms ease, box-shadow 220ms ease;
+}
+
+.tabs {
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--surface) 80%, transparent);
+  padding: 0.22rem;
+}
+
+.tab {
+  position: relative;
+  transition:
+    color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease;
+}
+
+.tab.is-active {
+  background: color-mix(in srgb, var(--surface) 92%, var(--primary));
+  color: var(--link);
+}
+
+.icon-button,
+.button,
+.floor-option,
+.admin-section-tab {
+  transition:
+    transform 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    color 180ms ease;
+}
+
+.button.primary {
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.button:not(:disabled):active,
+.icon-button:active,
+.floor-option:active,
+.tab:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.room-kpi,
+.floor-option,
+.result-card,
+.kpi,
+.admin-room-item,
+.my-booking-card {
+  transition:
+    transform 220ms ease,
+    border-color 220ms ease,
+    box-shadow 220ms ease,
+    background 220ms ease;
+}
+
+.room-table {
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--text) 7%, transparent);
+}
+
+.room-row {
+  transition:
+    background 180ms ease,
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.room-feature,
+.chip,
+.badge,
+.feature,
+.admin-state {
+  transition:
+    transform 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease;
+}
+
+.room-status-countdown,
+.countdown {
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--reserved) 10%, transparent);
+  padding: 0.08rem 0.38rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.live-notice {
+  border-left: 4px solid var(--primary);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--text) 8%, transparent);
+}
+
+.card,
+.modal-card,
+.admin-room-item,
+.room-table {
+  border-color: color-mix(in srgb, var(--border) 82%, var(--primary));
+}
+
+dialog.modal {
+  animation: dialog-pop 220ms cubic-bezier(.22, .85, .32, 1);
+}
+
+dialog.modal::backdrop {
+  background: color-mix(in srgb, #07110f 32%, transparent);
+}
+
+.modal-card {
+  box-shadow: 0 24px 70px color-mix(in srgb, var(--text) 24%, transparent);
+}
+
+input,
+textarea,
+select {
+  transition:
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 18%, transparent);
+  outline: none;
+}
+
+.toast {
+  border: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--text) 16%, transparent);
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes soft-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(.995);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes row-enter {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes status-pulse {
+  70% {
+    box-shadow: 0 0 0 7px color-mix(in srgb, var(--primary) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 0%, transparent);
+  }
+}
+
+@keyframes dialog-pop {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .skeleton::after {
+    animation: none;
   }
 }

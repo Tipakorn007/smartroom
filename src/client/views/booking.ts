@@ -33,7 +33,7 @@ export function openBookingDialog(room: Room, userId: string, onCreated: () => v
   const title = el("h2", { text: `จองห้อง ${room.name}` });
   const subtitle = el("p", {
     class: "muted small",
-    text: `ชั้น ${room.floor} · จุ ${room.capacity} คน · เริ่มใช้งานทันที`,
+    text: `ชั้น ${room.floor} · จุ ${room.capacity} คน`,
   });
 
   const form = el("form", { class: "stack" });

@@ -95,7 +95,8 @@ export function renderRoomsView(
   );
   for (const room of roomsOnFloor) {
     const entry = waitlists.find((item) => item.roomId === room.id);
-    table.append(buildRoomRow(room, entry, handlers));
+    const row = buildRoomRow(room, entry, handlers);
+    table.append(row);
   }
 
   if (roomsOnFloor.length === 0) {

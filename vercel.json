@@ -2,15 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "bun run build",
   "outputDirectory": "public",
+  "env": {
+    "SMARTROOM_LOCAL_DEMO": "true"
+  },
   "rewrites": [
-    {
-      "source": "/map",
-      "destination": "/map.html"
-    },
-    {
-      "source": "/map/",
-      "destination": "/map.html"
-    },
     {
       "source": "/admin",
       "destination": "/admin.html"

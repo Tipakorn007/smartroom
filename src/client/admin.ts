@@ -44,7 +44,7 @@ if (root) {
   const headerTools = el("div", { class: "admin-header-tools" }, [themeButton, accountActions]);
   const header = el("header", { class: "site-header" }, [
     el("div", { class: "header-inner" }, [
-      el("a", { class: "brand admin-brand", href: "/", attrs: { "aria-label": "กลับหน้า SmartRoom" } }, [
+      el("div", { class: "brand admin-brand" }, [
         el("img", { class: "brand-mark", attrs: { src: "/smartroom-icon.png", alt: "" } }), title,
       ]),
       headerTools,
@@ -61,11 +61,11 @@ if (root) {
       activeSection = "rooms";
       updateSectionTabs();
       title.querySelector("p")!.textContent = session.demo ? "ระบบจัดการห้อง · โหมดเดโม" : "ระบบจัดการห้อง";
-      if (session.demo) accountActions.replaceChildren(el("a", { class: "button ghost", href: "/", text: "ไปหน้าเว็บผู้ใช้" }));
+      if (session.demo) accountActions.replaceChildren();
       else {
         const logout = el("button", { class: "button ghost", type: "button", text: "ออกจากระบบ" });
         logout.addEventListener("click", () => void logoutAdmin());
-        accountActions.replaceChildren(el("a", { class: "button ghost", href: "/", text: "หน้าเว็บผู้ใช้" }), logout);
+        accountActions.replaceChildren(logout);
       }
       content.replaceChildren(sectionNav, sectionContent);
       await loadRooms();
@@ -94,10 +94,9 @@ if (root) {
     const password = document.createElement("input"); password.type = "password"; password.name = "password"; password.autocomplete = "current-password"; password.required = true; password.placeholder = "รหัสผ่าน"; password.setAttribute("aria-label", "รหัสผ่าน");
     const error = el("p", { class: "alert", text: message });
     const submit = el("button", { class: "button primary", type: "submit", text: "เข้าสู่ระบบ" });
-    const back = el("a", { class: "button ghost", href: "/", text: "กลับหน้าเว็บผู้ใช้" });
     form.append(heading, username, password);
     if (message) form.append(error);
-    form.append(submit, back);
+    form.append(submit);
     form.addEventListener("submit", async (event) => {
       event.preventDefault(); submit.disabled = true;
       try { await api.adminLogin(username.value, password.value); await bootstrap(); }
