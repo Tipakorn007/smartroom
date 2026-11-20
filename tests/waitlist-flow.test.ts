@@ -105,6 +105,14 @@ test("waitlist offers pass to the next user and presence actions obey the queue"
     expect(
       (await call(`/api/bookings/${accepted.data?.booking.token}/leave`, "POST", {})).status,
     ).toBe(200);
+    const cHistory = await call<{
+      bookings: Array<{ booking: { token: string; status: string } }>;
+    }>(`/api/me/bookings?userId=${userIds.c}`);
+    expect(
+      cHistory.data?.bookings.find(
+        (entry) => entry.booking.token === accepted.data?.booking.token,
+      )?.booking.status,
+    ).toBe("finished");
 
     const secondRoom = await call<{ booking: { endAt: number; token: string } }>(
       "/api/bookings",

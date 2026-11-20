@@ -11,8 +11,16 @@ if (root) {
   const content = el("main", { class: "container" });
   const sectionContent = el("section", { class: "admin-section-content" });
   let activeSection: "rooms" | "stats" = "rooms";
-  const roomsTab = el("button", { class: "admin-section-tab is-active", type: "button", text: "จัดการห้อง" });
-  const statsTab = el("button", { class: "admin-section-tab", type: "button", text: "สถิติการใช้งาน" });
+  const roomsTab = el("button", { class: "admin-section-tab is-active", type: "button" });
+  roomsTab.append(
+    el("span", { class: "admin-section-icon", text: "▦", attrs: { "aria-hidden": "true" } }),
+    el("span", { text: "จัดการห้อง" }),
+  );
+  const statsTab = el("button", { class: "admin-section-tab", type: "button" });
+  statsTab.append(
+    el("span", { class: "admin-section-icon", text: "▥", attrs: { "aria-hidden": "true" } }),
+    el("span", { text: "สถิติการใช้งาน" }),
+  );
   const sectionNav = el("nav", { class: "admin-section-tabs", attrs: { "aria-label": "เมนูระบบจัดการ" } }, [roomsTab, statsTab]);
   roomsTab.addEventListener("click", () => {
     activeSection = "rooms";

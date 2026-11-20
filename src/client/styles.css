@@ -959,6 +959,89 @@ dialog.modal::backdrop {
   }
 }
 
+/* ---------- Admin section navigation ---------- */
+
+.admin-section-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  width: fit-content;
+  max-width: 100%;
+  margin-bottom: 1.35rem;
+  padding: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface) 82%, var(--bg));
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--text) 7%, transparent);
+}
+
+.admin-section-tab {
+  min-height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  min-width: 160px;
+  padding: 0.7rem 1.1rem;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-section-tab:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--surface) 72%, var(--primary));
+}
+
+.admin-section-tab.is-active {
+  border-color: color-mix(in srgb, var(--primary) 55%, var(--border));
+  background: var(--surface);
+  color: var(--link);
+  box-shadow:
+    inset 0 -2px 0 var(--primary),
+    0 8px 18px color-mix(in srgb, var(--primary) 14%, transparent);
+}
+
+.admin-section-icon {
+  width: 30px;
+  height: 30px;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--primary) 16%, var(--surface));
+  color: var(--link);
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.admin-section-tab.is-active .admin-section-icon {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.admin-section-content {
+  min-width: 0;
+}
+
+@media (max-width: 560px) {
+  .admin-section-tabs {
+    width: 100%;
+  }
+  .admin-section-tab {
+    min-width: 0;
+    min-height: 52px;
+    padding-inline: 0.55rem;
+  }
+  .admin-section-icon {
+    width: 28px;
+    height: 28px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .toast {
     animation: none;
@@ -2265,5 +2348,354 @@ select:focus {
   }
   .skeleton::after {
     animation: none;
+  }
+}
+
+/* ---------- Responsive sizing balance ---------- */
+
+body {
+  font-size: clamp(15px, 1.05vw, 17px);
+}
+
+.header-inner,
+.container,
+.site-footer {
+  max-width: 980px;
+}
+
+.header-inner {
+  min-height: 64px;
+  padding-top: 0.65rem;
+  padding-bottom: 0.65rem;
+}
+
+.brand-mark {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+
+.brand-text h1 {
+  font-size: 1.12rem;
+}
+
+.brand-text p {
+  font-size: 0.82rem;
+}
+
+.tabs {
+  gap: 0.15rem;
+  padding: 0.18rem;
+}
+
+.tab {
+  font-size: 0.92rem;
+  padding: 0.38rem 0.72rem;
+}
+
+.container {
+  padding-top: 1.2rem;
+  padding-bottom: 2.5rem;
+}
+
+.button,
+.icon-button,
+.floor-option,
+.admin-section-tab,
+.tab {
+  min-height: 40px;
+}
+
+.rooms-hero {
+  margin-bottom: 0.9rem;
+}
+
+.rooms-hero h2 {
+  font-size: clamp(1.35rem, 2.4vw, 1.65rem);
+}
+
+.room-kpi {
+  min-height: 82px;
+  padding: 0.75rem;
+}
+
+.room-kpi-value {
+  font-size: 1.35rem;
+}
+
+.floor-picker {
+  min-width: 180px;
+  max-width: 200px;
+  padding: 0.75rem;
+}
+
+.floor-option {
+  min-height: 44px;
+  padding: 0.5rem 0.65rem;
+  font-size: 0.88rem;
+}
+
+.room-table {
+  font-size: 0.92rem;
+}
+
+.room-table-head,
+.room-row {
+  grid-template-columns: minmax(7rem, 1fr) minmax(8.5rem, 1.25fr) minmax(9rem, 1.15fr) 3.2rem;
+}
+
+.room-row {
+  min-height: 68px;
+  padding-inline: 0.85rem;
+}
+
+.room-name strong {
+  font-size: 0.98rem;
+}
+
+.room-feature,
+.room-status-detail,
+.room-status-label {
+  font-size: 0.82rem;
+}
+
+.room-book-button {
+  min-width: 54px;
+  min-height: 40px;
+  padding-inline: 0.65rem;
+}
+
+.admin-section-tabs {
+  width: 410px;
+  max-width: 100%;
+  margin: 0 0 1rem;
+  gap: 0.35rem;
+  padding: 0.25rem;
+  border-radius: 13px;
+}
+
+.admin-section-tab {
+  min-width: 0;
+  min-height: 42px;
+  padding: 0.5rem 0.75rem;
+  gap: 0.45rem;
+  border-radius: 10px;
+  font-size: 0.92rem;
+}
+
+.admin-section-icon {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.admin-page-heading {
+  margin-bottom: 0.9rem;
+}
+
+.admin-summary {
+  gap: 0.55rem;
+}
+
+.admin-summary-item {
+  min-width: 86px;
+  padding: 0.55rem 0.7rem;
+}
+
+.admin-toolbar {
+  margin-bottom: 0.75rem;
+  gap: 0.5rem;
+}
+
+.admin-toolbar input,
+.admin-toolbar select {
+  min-height: 40px;
+  font-size: 0.88rem;
+}
+
+.admin-room-item > summary {
+  min-height: 58px;
+  padding: 0.65rem 0.85rem;
+}
+
+.admin-room-form,
+.admin-maintenance-form {
+  gap: 0.5rem;
+}
+
+.admin-room-form input,
+.admin-room-form select,
+.admin-maintenance-form input {
+  min-height: 40px;
+  font-size: 0.88rem;
+}
+
+.kpi-grid {
+  gap: 0.75rem;
+}
+
+.kpi {
+  min-height: 118px;
+  padding: 0.75rem;
+}
+
+.kpi-value {
+  font-size: 1.55rem;
+}
+
+.modal-card {
+  max-width: 480px;
+  width: calc(100% - 1.5rem);
+}
+
+@media (min-width: 641px) and (max-width: 900px) {
+  body {
+    font-size: clamp(15px, 1.8vw, 16px);
+  }
+
+  .header-inner,
+  .container,
+  .site-footer {
+    max-width: 760px;
+  }
+
+  .header-inner {
+    padding-inline: 1rem;
+  }
+
+  .container {
+    padding-inline: 1rem;
+  }
+
+  .tabs {
+    font-size: 0.88rem;
+  }
+
+  .floor-picker {
+    min-width: 100%;
+  }
+
+  .rooms-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  body {
+    font-size: 15px;
+  }
+
+  .header-inner {
+    min-height: 58px;
+  }
+
+  .brand-mark {
+    width: 32px;
+    height: 32px;
+  }
+
+  .brand-text h1 {
+    font-size: 1.05rem;
+  }
+
+  .brand-text p {
+    font-size: 0.78rem;
+  }
+
+  .tabs {
+    justify-content: space-between;
+  }
+
+  .tab {
+    min-height: 40px;
+    flex: 1;
+    padding-inline: 0.45rem;
+    font-size: 0.82rem;
+    text-align: center;
+  }
+
+  .container {
+    padding: 1rem 0.8rem 2.2rem;
+  }
+
+  .rooms-hero {
+    gap: 0.75rem;
+  }
+
+  .room-kpis {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .room-kpi {
+    min-height: 74px;
+    padding: 0.55rem;
+  }
+
+  .room-kpi-value {
+    font-size: 1.22rem;
+  }
+
+  .floor-picker {
+    min-width: 100%;
+  }
+
+  .room-table-head {
+    display: none;
+  }
+
+  .room-row {
+    min-height: 78px;
+    grid-template-columns: minmax(7rem, 1fr) auto;
+    gap: 0.55rem;
+  }
+
+  .room-row .room-features {
+    grid-column: 1;
+  }
+
+  .room-row .room-status {
+    grid-column: 1;
+  }
+
+  .room-row .room-book-button {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  .admin-section-tabs {
+    width: 100%;
+  }
+
+  .admin-section-tab {
+    min-height: 44px;
+    padding-inline: 0.35rem;
+    font-size: 0.82rem;
+  }
+
+  .admin-section-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .admin-summary-item {
+    min-width: 76px;
+  }
+
+  .admin-toolbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 110px;
+  }
+
+  .admin-add-room {
+    grid-column: 1 / -1;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .kpi {
+    min-height: 104px;
   }
 }
