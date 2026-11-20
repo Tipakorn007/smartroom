@@ -21,6 +21,18 @@
   --shadow: 0 1px 2px color-mix(in srgb, var(--text) 5%, transparent), 0 10px 24px color-mix(in srgb, var(--text) 8%, transparent);
   --radius: 16px;
 }
+:root[data-theme="light"] {
+  --text: #173a3a;
+  --muted: #55716f;
+  --primary: #238f92;
+  --primary-hover: #17777b;
+  --on-primary: #ffffff;
+  --primary-action: #238f92;
+  --primary-action-hover: #17777b;
+  --link: #08717e;
+  --surface-muted: #edf6f4;
+  --border: #c9dfda;
+}
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) { color-scheme: dark;
     --bg: #0b1220; --surface: #111a2b; --border: #1f2a3d;
