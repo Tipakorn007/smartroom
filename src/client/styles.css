@@ -1,7 +1,7 @@
 /* ==========================================================================
-   SmartRoom — สไตล์หลัก
-   ใช้ CSS variables เพื่อสลับโหมดสว่าง/มืดได้ในที่เดียว
-   สถานะห้องใช้ "สี + ไอคอน + ข้อความ" ไม่พึ่งสีอย่างเดียว
+   SmartRoom - สไตล์หลัก
+   ใช้ CSS variables สำหรับโหมดสว่างและโหมดมืด
+   แสดงสถานะด้วยทั้งสี ไอคอน และข้อความ
    ========================================================================== */
 
 :root {
@@ -113,7 +113,6 @@ a {
   border: 0;
 }
 
-/* ---------- โครงหน้า ---------- */
 
 .site-header {
   background: var(--surface);
@@ -228,7 +227,6 @@ a {
   font-size: 0.9rem;
 }
 
-/* ---------- ส่วนหัวของแต่ละแท็บ ---------- */
 
 .section-heading {
   display: flex;
@@ -243,7 +241,6 @@ a {
   font-size: 0.95rem;
 }
 
-/* ---------- ชั้น / ปุ่มเลือกชั้น ---------- */
 
 .floor-tabs {
   display: flex;
@@ -278,7 +275,6 @@ a {
   color: var(--muted);
 }
 
-/* ---------- คำอธิบายสถานะ ---------- */
 
 .legend {
   display: flex;
@@ -295,7 +291,6 @@ a {
   gap: 0.4rem;
 }
 
-/* ---------- การ์ดห้อง ---------- */
 
 .room-grid {
   display: grid;
@@ -334,7 +329,6 @@ a {
   gap: 0.6rem;
 }
 
-/* ---------- ป้ายสถานะ ---------- */
 
 .chip {
   display: inline-flex;
@@ -381,7 +375,6 @@ a {
   font-weight: 700;
 }
 
-/* ---------- รายการคุณสมบัติ ---------- */
 
 .feature-list {
   list-style: none;
@@ -417,7 +410,6 @@ a {
   margin-top: auto;
 }
 
-/* ---------- ปุ่ม ---------- */
 
 .button {
   border: 1px solid color-mix(in srgb, var(--border) 72%, var(--muted));
@@ -451,7 +443,6 @@ a {
   cursor: not-allowed;
 }
 
-/* ---------- การ์ดทั่วไป / ฟอร์ม ---------- */
 
 .card {
   background: var(--surface);
@@ -565,7 +556,6 @@ a {
   font-size: 0.9rem;
 }
 
-/* ---------- ผลการแนะนำห้อง ---------- */
 
 .results {
   display: grid;
@@ -606,7 +596,6 @@ a {
   margin-top: 0.15rem;
 }
 
-/* ---------- สถิติ ---------- */
 
 .kpi-grid {
   display: grid;
@@ -701,7 +690,6 @@ a {
   color: var(--muted);
 }
 
-/* ---------- หน้าต่างจอง (dialog) ---------- */
 
 dialog.modal {
   border: 0;
@@ -806,6 +794,7 @@ dialog.modal::backdrop {
 }
 
 /* ---------- Loading skeleton ---------- */
+
 
 .loading-shell {
   display: grid;
@@ -976,7 +965,6 @@ dialog.modal::backdrop {
   }
 }
 
-/* ---------- จอเล็ก ---------- */
 
 @media (max-width: 640px) {
   .header-inner {
@@ -1758,7 +1746,6 @@ dialog.modal::backdrop {
   }
 }
 
-/* ---------- หน้าเช็กอิน ---------- */
 
 .checkin-hero {
   text-align: center;
@@ -2051,500 +2038,6 @@ dialog.modal::backdrop {
   .booking-cancel-button {
     width: 100%;
     min-height: 44px;
-  }
-}
-
-/* ---------- Live room map demo ---------- */
-.room-map-header {
-  grid-template-columns: minmax(0, 1fr) auto auto;
-}
-
-.room-map-brand {
-  color: inherit;
-  text-decoration: none;
-}
-
-.room-map-page {
-  width: min(100%, 1320px);
-  --room-map-status-available: var(--free);
-  --room-map-status-pending: var(--reserved);
-  --room-map-status-in-use: var(--busy);
-  --room-map-status-closed: var(--off);
-}
-
-.room-map-intro {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1.5rem;
-  margin: 0.5rem 0 1.35rem;
-}
-
-.room-map-intro h2 {
-  margin: 0.25rem 0 0.4rem;
-  font-size: clamp(1.7rem, 4vw, 2.4rem);
-  line-height: 1.2;
-}
-
-.room-map-intro p {
-  margin-bottom: 0;
-}
-
-.room-map-live-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
-  flex: 0 0 auto;
-  padding: 0.55rem 0.8rem;
-  border: 1px solid var(--border);
-  border-radius: 99px;
-  background: var(--surface);
-  color: var(--muted);
-  font-size: 0.88rem;
-}
-
-.room-map-live-dot {
-  width: 0.55rem;
-  height: 0.55rem;
-  border-radius: 50%;
-  background: var(--free);
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--free) 16%, transparent);
-  animation: room-map-live-pulse 1.8s ease-in-out infinite;
-}
-
-@keyframes room-map-live-pulse {
-  50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--free) 8%, transparent); }
-}
-
-.room-map-filters {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.75rem 1.25rem;
-  margin-bottom: 1.25rem;
-  padding: 0.85rem 1rem;
-}
-
-.room-map-filter-capacity,
-.room-map-filter-available {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.65rem;
-  color: var(--text);
-  font-weight: 600;
-}
-
-.room-map-seat-input {
-  width: 5.5rem;
-  min-height: 2.65rem;
-  padding: 0.45rem 0.65rem;
-  border: 1px solid var(--border);
-  border-radius: 0.65rem;
-  background: var(--surface);
-  color: var(--text);
-  font: inherit;
-}
-
-.room-map-filter-available input {
-  width: 1.15rem;
-  height: 1.15rem;
-  accent-color: var(--primary);
-}
-
-.room-map-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 15rem;
-  align-items: start;
-  gap: 1.25rem;
-}
-
-.room-map-main {
-  min-width: 0;
-}
-
-.room-map-floors {
-  display: flex;
-  gap: 0.5rem;
-  overflow-x: auto;
-  padding: 0.15rem 0 0.85rem;
-  scrollbar-width: thin;
-}
-
-.room-map-floor {
-  display: inline-flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  min-height: 2.9rem;
-  flex: 0 0 auto;
-  padding: 0.55rem 0.85rem;
-  border: 1px solid var(--border);
-  border-radius: 0.8rem;
-  background: var(--surface);
-  color: var(--muted);
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-  transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease;
-}
-
-.room-map-floor.is-active {
-  border-color: var(--primary);
-  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
-  color: var(--text);
-  box-shadow: inset 0 0 0 1px var(--primary);
-}
-
-.room-map-floor-count {
-  color: var(--muted);
-  font-size: 0.82rem;
-  font-weight: 500;
-}
-
-.room-map-summary {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0.25rem 0.75rem;
-  min-height: 2rem;
-  margin-bottom: 0.75rem;
-  color: var(--text);
-}
-
-.room-map-summary strong {
-  color: var(--primary);
-  font-size: 1.08rem;
-}
-
-.room-map-summary-meta {
-  color: var(--muted);
-  font-size: 0.88rem;
-}
-
-.room-map-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
-  gap: 0.85rem;
-}
-
-.room-map-card {
-  --room-map-accent: var(--primary);
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.65rem;
-  min-width: 0;
-  min-height: 10.4rem;
-  padding: 0.95rem 1rem;
-  border: 1px solid var(--border);
-  border-left: 5px solid var(--room-map-accent);
-  border-radius: 1rem;
-  background: color-mix(in srgb, var(--room-map-accent) 9%, var(--surface));
-  color: var(--text);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition: transform 160ms ease, border-color 220ms ease, background-color 220ms ease, box-shadow 160ms ease;
-}
-
-
-.room-map-card:focus-visible,
-.room-map-floor:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--primary) 60%, transparent);
-  outline-offset: 2px;
-}
-
-.room-map-card.status-available { --room-map-accent: var(--room-map-status-available); }
-.room-map-card.status-pending { --room-map-accent: var(--room-map-status-pending); }
-.room-map-card.status-in-use { --room-map-accent: var(--room-map-status-in-use); }
-.room-map-card.status-closed { --room-map-accent: var(--room-map-status-closed); }
-
-.room-map-card-top {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 0.55rem;
-}
-
-.room-map-name {
-  min-width: 0;
-  font-size: 1.1rem;
-  font-weight: 700;
-  overflow-wrap: anywhere;
-}
-
-.room-map-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  flex: 0 0 auto;
-  max-width: 65%;
-  padding: 0.28rem 0.5rem;
-  border-radius: 99px;
-  background: color-mix(in srgb, var(--room-map-accent) 15%, var(--surface));
-  color: var(--room-map-accent);
-  font-size: 0.76rem;
-  font-weight: 700;
-  line-height: 1.3;
-  white-space: normal;
-}
-
-.room-map-status-dot,
-.room-map-legend-swatch,
-.room-map-detail-status .room-map-status-dot {
-  width: 0.52rem;
-  height: 0.52rem;
-  flex: 0 0 auto;
-  border-radius: 50%;
-  background: var(--room-map-accent);
-}
-
-.room-map-seats {
-  color: var(--muted);
-  font-size: 0.9rem;
-}
-
-.room-map-availability {
-  color: var(--text);
-  font-size: 0.9rem;
-  font-weight: 600;
-}
-
-.room-map-open-hint {
-  margin-top: auto;
-  color: var(--primary);
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
-.room-map-empty,
-.room-map-error {
-  grid-column: 1 / -1;
-  display: grid;
-  justify-items: start;
-  gap: 0.6rem;
-  padding: 1.25rem;
-  color: var(--text);
-}
-
-.room-map-legend {
-  position: sticky;
-  top: 1rem;
-  display: grid;
-  gap: 0.85rem;
-  padding: 1rem;
-}
-
-.room-map-legend h3 {
-  margin: 0 0 0.15rem;
-  font-size: 1rem;
-}
-
-.room-map-legend-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  color: var(--muted);
-  font-size: 0.88rem;
-  line-height: 1.4;
-}
-
-.room-map-legend-swatch {
-  margin-top: 0.3rem;
-}
-
-.room-map-legend-swatch.available { background: var(--free); }
-.room-map-legend-swatch.pending { background: var(--reserved); }
-.room-map-legend-swatch.in-use { background: var(--busy); }
-.room-map-legend-swatch.closed { background: var(--off); }
-
-.admin-section-tabs {
-  display: flex;
-  gap: 0.45rem;
-  margin: 0 0 1.25rem;
-  padding: 0.3rem;
-  overflow-x: auto;
-  border: 1px solid var(--border);
-  border-radius: 0.9rem;
-  background: var(--surface-muted);
-}
-
-.admin-section-tab {
-  min-height: 2.8rem;
-  flex: 0 0 auto;
-  padding: 0.55rem 1rem;
-  border: 1px solid transparent;
-  border-radius: 0.7rem;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.admin-section-tab.is-active {
-  border-color: var(--border);
-  background: var(--surface);
-  color: var(--primary);
-  box-shadow: var(--shadow);
-}
-
-.admin-section-content {
-  min-width: 0;
-}
-
-.room-map-dialog {
-  width: min(28rem, calc(100% - 1.25rem));
-  --room-map-status-available: var(--free);
-  --room-map-status-pending: var(--reserved);
-  --room-map-status-in-use: var(--busy);
-  --room-map-status-closed: var(--off);
-}
-
-.room-map-detail {
-  gap: 1rem;
-}
-
-.room-map-detail-heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 1rem;
-}
-
-.room-map-detail-heading .eyebrow,
-.room-map-detail-heading h2 {
-  margin: 0;
-}
-
-.room-map-detail-heading h2 {
-  margin-top: 0.25rem;
-  font-size: 1.6rem;
-}
-
-.room-map-detail-status {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  color: var(--text);
-}
-
-.status-dot-available { --room-map-accent: var(--room-map-status-available); }
-.status-dot-pending { --room-map-accent: var(--room-map-status-pending); }
-.status-dot-in-use { --room-map-accent: var(--room-map-status-in-use); }
-.status-dot-closed { --room-map-accent: var(--room-map-status-closed); }
-
-.room-map-detail-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
-}
-
-.room-map-detail-item {
-  display: grid;
-  gap: 0.2rem;
-  min-width: 0;
-  padding: 0.75rem;
-  border-radius: 0.75rem;
-  background: var(--surface-muted);
-}
-
-.room-map-detail-availability,
-.room-map-closure,
-.room-map-booking-note {
-  margin: 0;
-}
-
-@media (max-width: 900px) {
-  .room-map-layout {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .room-map-legend {
-    position: static;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .room-map-legend h3 {
-    grid-column: 1 / -1;
-  }
-}
-
-@media (max-width: 640px) {
-  .room-map-header {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .room-map-back {
-    min-height: 44px;
-    grid-column: 1;
-    grid-row: 2;
-    justify-self: start;
-  }
-
-  .room-map-header .icon-button {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-  }
-
-  .room-map-intro {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 0.8rem;
-  }
-
-  .room-map-filters {
-    align-items: stretch;
-    flex-direction: column;
-    gap: 0.75rem;
-  }
-
-  .room-map-filter-capacity {
-    justify-content: space-between;
-  }
-
-  .room-map-filter-available {
-    min-height: 44px;
-  }
-
-  .room-map-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.6rem;
-  }
-
-  .room-map-card {
-    min-height: 9.8rem;
-    gap: 0.5rem;
-    padding: 0.75rem;
-  }
-
-  .room-map-card-top {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .room-map-status {
-    max-width: 100%;
-  }
-
-  .room-map-availability {
-    font-size: 0.82rem;
-  }
-}
-
-@media (max-width: 380px) {
-  .room-map-grid,
-  .room-map-legend {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-@media (max-width: 640px) {
-  .admin-header-tools {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    justify-content: space-between;
-    flex-wrap: wrap;
   }
 }
 

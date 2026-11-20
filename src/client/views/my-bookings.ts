@@ -11,7 +11,7 @@ export function renderMyBookingsView(
     el("div", { class: "section-heading" }, [
       el("p", { class: "eyebrow", text: "บัญชีในอุปกรณ์นี้" }),
       el("h2", { text: "การจองของฉัน" }),
-      el("p", { class: "muted", text: "ดูสถานะ ยืนยันหรือเช็กอิน และยกเลิกการจองที่ยังไม่เช็กอินได้" }),
+      el("p", { class: "muted", text: "ดูสถานะและประวัติการจอง ยืนยันหรือยกเลิกรายการที่ยังไม่เช็กอินได้" }),
     ]),
   ]);
 
