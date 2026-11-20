@@ -5,56 +5,43 @@
    ========================================================================== */
 
 :root {
-  color-scheme: light;
-
-  --bg: #f7f1e7;
-  --surface: #fffaf2;
-  --surface-muted: #f0e6d7;
-  --text: #3b342b;
-  --text-muted: #786e60;
-  --border: #e3d5c2;
-  --primary: #896847;
-  --primary-strong: #715438;
-  --primary-contrast: #fffaf2;
-
-  --available: #47785a;
-  --available-bg: #e6efe5;
-  --inuse: #8b5a2c;
-  --inuse-bg: #f5e8d7;
-  --pending: #5f718b;
-  --pending-bg: #e9edf3;
-  --danger: #a4544a;
-
-  --shadow: 0 1px 2px rgba(59, 52, 43, 0.05), 0 10px 24px rgba(59, 52, 43, 0.08);
+  color-scheme: light dark;
+  --bg: #f3faf8; --surface: #ffffff; --border: #d5ebe6;
+  --text: #1f3d3a; --muted: #5b7a76;
+  --primary: #99e0d4; --primary-hover: #7fd3c5; --on-primary: #0f4c47;
+  --link: #0f766e;
+  --free-bg: #d7f5e3; --free: #15803d;
+  --reserved-bg: #fdf0c9; --reserved: #a16207;
+  --busy-bg: #fcdcdc; --busy: #b91c1c;
+  --off-bg: #e8edf2; --off: #64748b;
+  --surface-muted: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  --shadow: 0 1px 2px color-mix(in srgb, var(--text) 5%, transparent), 0 10px 24px color-mix(in srgb, var(--text) 8%, transparent);
   --radius: 16px;
 }
-
-:root[data-theme="dark"] {
-  color-scheme: dark;
-
-  --bg: #0a1319;
-  --surface: #111f27;
-  --surface-muted: #172932;
-  --text: #e6eef3;
-  --text-muted: #9db3c0;
-  --border: #253c48;
-  --primary: #2dd4bf;
-  --primary-strong: #5eead4;
-  --primary-contrast: #04211e;
-
-  --available: #4ade80;
-  --available-bg: #10301f;
-  --inuse: #fbbf24;
-  --inuse-bg: #33260f;
-  --pending: #93c5fd;
-  --pending-bg: #16294a;
-  --danger: #f87171;
-
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 24px rgba(0, 0, 0, 0.35);
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { color-scheme: dark;
+    --bg: #0b1220; --surface: #111a2b; --border: #1f2a3d;
+    --text: #e6edf3; --muted: #94a3b8;
+    --primary: #2dd4bf; --primary-hover: #5eead4; --on-primary: #042f2e; --link: #2dd4bf;
+    --free-bg: rgba(74,222,128,.15); --free: #4ade80;
+    --reserved-bg: rgba(251,191,36,.15); --reserved: #fbbf24;
+    --busy-bg: rgba(248,113,113,.15); --busy: #f87171;
+    --off-bg: rgba(100,116,139,.2); --off: #94a3b8;
+  }
+}
+:root[data-theme="dark"] { color-scheme: dark;
+  --bg: #0b1220; --surface: #111a2b; --border: #1f2a3d;
+  --text: #e6edf3; --muted: #94a3b8;
+  --primary: #2dd4bf; --primary-hover: #5eead4; --on-primary: #042f2e; --link: #2dd4bf;
+  --free-bg: rgba(74,222,128,.15); --free: #4ade80;
+  --reserved-bg: rgba(251,191,36,.15); --reserved: #fbbf24;
+  --busy-bg: rgba(248,113,113,.15); --busy: #f87171;
+  --off-bg: rgba(100,116,139,.2); --off: #94a3b8;
 }
 
 * {
   box-sizing: border-box;
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
 }
 
 body {
@@ -101,7 +88,7 @@ a {
 }
 
 .muted {
-  color: var(--text-muted);
+  color: var(--muted);
 }
 
 .small {
@@ -166,7 +153,7 @@ a {
 
 .brand-text p {
   font-size: 0.9rem;
-  color: var(--text-muted);
+  color: var(--muted);
 }
 
 .tabs {
@@ -181,7 +168,7 @@ a {
 .tab {
   border: 0;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--muted);
   font: inherit;
   font-size: 1rem;
   font-weight: 600;
@@ -194,6 +181,13 @@ a {
   background: var(--surface);
   color: var(--text);
   box-shadow: var(--shadow);
+}
+
+.tab.room-map-nav-link {
+  display: inline-flex;
+  align-items: center;
+  color: var(--primary);
+  text-decoration: none;
 }
 
 .tab:focus-visible,
@@ -230,7 +224,7 @@ a {
   max-width: 1120px;
   margin: 0 auto;
   padding: 0 1.25rem 2.5rem;
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
@@ -281,7 +275,7 @@ a {
 .floor-count {
   font-size: 0.9rem;
   font-weight: 500;
-  color: var(--text-muted);
+  color: var(--muted);
 }
 
 /* ---------- คำอธิบายสถานะ ---------- */
@@ -292,7 +286,7 @@ a {
   gap: 0.5rem 1rem;
   margin-bottom: 1.1rem;
   font-size: 0.9rem;
-  color: var(--text-muted);
+  color: var(--muted);
 }
 
 .legend-item {
@@ -322,15 +316,15 @@ a {
 }
 
 .room-card.status-available {
-  border-left-color: var(--available);
+  border-left-color: var(--free);
 }
 
 .room-card.status-in_use {
-  border-left-color: var(--inuse);
+  border-left-color: var(--busy);
 }
 
 .room-card.status-pending {
-  border-left-color: var(--pending);
+  border-left-color: var(--reserved);
 }
 
 .room-card-head {
@@ -359,26 +353,26 @@ a {
 }
 
 .chip-available {
-  background: var(--available-bg);
-  color: var(--available);
+  background: var(--free-bg);
+  color: var(--free);
   border-color: currentColor;
 }
 
 .chip-in_use {
-  background: var(--inuse-bg);
-  color: var(--inuse);
+  background: var(--busy-bg);
+  color: var(--busy);
   border-color: currentColor;
 }
 
 .chip-pending {
-  background: var(--pending-bg);
-  color: var(--pending);
+  background: var(--reserved-bg);
+  color: var(--reserved);
   border-color: currentColor;
 }
 
 .chip-released {
   background: var(--surface-muted);
-  color: var(--text-muted);
+  color: var(--muted);
   border-color: var(--border);
 }
 
@@ -403,7 +397,7 @@ a {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.12rem 0.45rem;
-  color: var(--text-muted);
+  color: var(--muted);
   background: var(--surface-muted);
 }
 
@@ -419,7 +413,7 @@ a {
 
 .room-state {
   font-size: 0.92rem;
-  color: var(--text-muted);
+  color: var(--muted);
   margin-top: auto;
 }
 
@@ -439,11 +433,11 @@ a {
 
 .button.primary {
   background: var(--primary);
-  color: var(--primary-contrast);
+  color: var(--on-primary);
 }
 
 .button.primary:hover {
-  background: var(--primary-strong);
+  background: var(--primary-hover);
 }
 
 .button.ghost {
@@ -561,14 +555,14 @@ a {
 }
 
 .form-error {
-  color: var(--danger);
+  color: var(--busy);
   font-size: 0.88rem;
   min-height: 1.2rem;
 }
 
 .alert {
-  border: 1px solid var(--danger);
-  color: var(--danger);
+  border: 1px solid var(--busy);
+  color: var(--busy);
   background: var(--surface);
   border-radius: 10px;
   padding: 0.6rem 0.75rem;
@@ -609,7 +603,7 @@ a {
   margin: 0;
   padding-left: 1.1rem;
   font-size: 0.95rem;
-  color: var(--text-muted);
+  color: var(--muted);
 }
 
 .reasons li + li {
@@ -635,7 +629,7 @@ a {
 
 .kpi-label {
   font-size: 0.9rem;
-  color: var(--text-muted);
+  color: var(--muted);
 }
 
 .kpi-value {
@@ -647,7 +641,7 @@ a {
 
 .kpi-hint {
   font-size: 0.9rem;
-  color: var(--text-muted);
+  color: var(--muted);
 }
 
 .stats-columns {
@@ -708,7 +702,7 @@ a {
 .footnote {
   margin-top: 0.9rem;
   font-size: 0.9rem;
-  color: var(--text-muted);
+  color: var(--muted);
 }
 
 /* ---------- หน้าต่างจอง (dialog) ---------- */
@@ -722,7 +716,7 @@ dialog.modal {
 }
 
 dialog.modal::backdrop {
-  background: rgba(5, 16, 22, 0.55);
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
 }
 
 .modal-card {
@@ -731,7 +725,7 @@ dialog.modal::backdrop {
   border: 1px solid var(--border);
   border-radius: 18px;
   padding: 1.25rem;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 20px 50px color-mix(in srgb, var(--text) 25%, transparent);
   display: flex;
   flex-direction: column;
   gap: 0.9rem;
@@ -750,7 +744,7 @@ dialog.modal::backdrop {
   display: grid;
   place-items: center;
   gap: 0.4rem;
-  background: #ffffff;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 0.9rem;
@@ -801,7 +795,7 @@ dialog.modal::backdrop {
 }
 
 .toast-warn {
-  border-left-color: var(--inuse);
+  border-left-color: var(--busy);
 }
 
 @keyframes toast-in {
@@ -865,19 +859,6 @@ dialog.modal::backdrop {
 }
 
 /* ---------- Availability dashboard ---------- */
-
-:root[data-theme="dark"] {
-  --bg: #111a18;
-  --surface: #182320;
-  --surface-muted: #22312c;
-  --text: #edf4f1;
-  --text-muted: #afc0b9;
-  --border: #354840;
-  --primary: #55d9c6;
-  --primary-strong: #7ae7d9;
-  --primary-contrast: #062b27;
-}
-
 .header-inner,
 .container,
 .site-footer {
@@ -957,7 +938,7 @@ dialog.modal::backdrop {
 
 .room-kpi-label {
   grid-column: 1 / -1;
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
@@ -968,7 +949,7 @@ dialog.modal::backdrop {
 }
 
 .room-kpi-unit {
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
@@ -987,7 +968,7 @@ dialog.modal::backdrop {
 
 .floor-picker-label {
   margin-bottom: 0.35rem;
-  color: var(--text-muted);
+  color: var(--muted);
 }
 
 .floor-option {
@@ -1000,7 +981,7 @@ dialog.modal::backdrop {
   border-radius: 0;
   padding: 0.55rem 0.6rem;
   background: transparent;
-  color: var(--text-muted);
+  color: var(--muted);
   font: inherit;
   font-size: 0.95rem;
   font-weight: 600;
@@ -1014,7 +995,7 @@ dialog.modal::backdrop {
 }
 
 .floor-option-count {
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.9rem;
   font-weight: 400;
 }
@@ -1025,7 +1006,7 @@ dialog.modal::backdrop {
   margin-top: 1.35rem;
   padding-top: 1rem;
   border-top: 1px solid var(--border);
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
@@ -1045,15 +1026,15 @@ dialog.modal::backdrop {
 }
 
 .status-dot-available {
-  background: var(--available);
+  background: var(--free);
 }
 
 .status-dot-in_use {
-  background: var(--inuse);
+  background: var(--busy);
 }
 
 .status-dot-pending {
-  background: var(--pending);
+  background: var(--reserved);
 }
 
 .status-dot-offered {
@@ -1061,7 +1042,7 @@ dialog.modal::backdrop {
 }
 
 .status-dot-closed {
-  background: var(--text-muted);
+  background: var(--muted);
 }
 
 .live-notices {
@@ -1077,7 +1058,7 @@ dialog.modal::backdrop {
 }
 
 .live-notice.presence-reminder {
-  border-left-color: var(--inuse);
+  border-left-color: var(--busy);
 }
 
 .live-notice h2,
@@ -1087,7 +1068,7 @@ dialog.modal::backdrop {
 }
 
 .live-notice p {
-  color: var(--text-muted);
+  color: var(--muted);
 }
 
 .live-notice-actions {
@@ -1125,7 +1106,7 @@ dialog.modal::backdrop {
   min-height: 2.6rem;
   border-bottom: 1px solid var(--border);
   background: var(--surface-muted);
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
@@ -1160,7 +1141,7 @@ dialog.modal::backdrop {
 }
 
 .room-feature {
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.9rem;
   white-space: nowrap;
 }
@@ -1180,15 +1161,15 @@ dialog.modal::backdrop {
 }
 
 .status-text-available {
-  color: var(--available);
+  color: var(--free);
 }
 
 .status-text-in_use {
-  color: var(--inuse);
+  color: var(--busy);
 }
 
 .status-text-pending {
-  color: var(--pending);
+  color: var(--reserved);
 }
 
 .status-text-offered {
@@ -1196,7 +1177,7 @@ dialog.modal::backdrop {
 }
 
 .status-text-closed {
-  color: var(--text-muted);
+  color: var(--muted);
 }
 
 .booking-edit-form,
@@ -1281,7 +1262,7 @@ dialog.modal::backdrop {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  color: var(--text-muted);
+  color: var(--muted);
 }
 
 .room-admin-form,
@@ -1358,7 +1339,7 @@ dialog.modal::backdrop {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 1rem;
-  box-shadow: 0 1rem 2.5rem rgb(0 0 0 / 15%);
+  box-shadow: 0 1rem 2.5rem color-mix(in srgb, var(--text) 15%, transparent);
 }
 
 .admin-room-list {
@@ -1398,13 +1379,13 @@ dialog.modal::backdrop {
 }
 
 .admin-state.is-open {
-  color: var(--available);
-  background: color-mix(in srgb, var(--available) 12%, transparent);
+  color: var(--free);
+  background: color-mix(in srgb, var(--free) 12%, transparent);
 }
 
 .admin-state.is-closed {
-  color: var(--text-muted);
-  background: var(--surface-raised, #eef2f5);
+  color: var(--muted);
+  background: var(--surface-muted);
 }
 
 .admin-expand {
@@ -1452,7 +1433,7 @@ dialog.modal::backdrop {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  color: var(--text-muted);
+  color: var(--muted);
   white-space: nowrap;
 }
 
@@ -1467,7 +1448,7 @@ dialog.modal::backdrop {
 
 .link-button {
   padding: 0.25rem 0;
-  color: var(--text-muted);
+  color: var(--muted);
   text-align: left;
   background: transparent;
   border: 0;
@@ -1490,6 +1471,13 @@ dialog.modal::backdrop {
   gap: 0.5rem;
 }
 
+.admin-header-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.65rem;
+}
+
 @media (max-width: 720px) {
   .admin-room-summary,
   .admin-room-controls {
@@ -1505,12 +1493,12 @@ dialog.modal::backdrop {
 
 .room-status-detail,
 .room-status-countdown {
-  color: var(--text-muted);
+  color: var(--muted);
   font-size: 0.9rem;
 }
 
 .room-status-countdown {
-  color: var(--pending);
+  color: var(--reserved);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1626,8 +1614,8 @@ dialog.modal::backdrop {
   display: grid;
   place-items: center;
   font-size: 1.6rem;
-  background: var(--available-bg);
-  color: var(--available);
+  background: var(--free-bg);
+  color: var(--free);
 }
 
 .checkin-detail {
@@ -1839,15 +1827,15 @@ dialog.modal::backdrop {
   }
 
   .room-row.status-available {
-    border-left-color: var(--available);
+    border-left-color: var(--free);
   }
 
   .room-row.status-in_use {
-    border-left-color: var(--inuse);
+    border-left-color: var(--busy);
   }
 
   .room-row.status-pending {
-    border-left-color: var(--pending);
+    border-left-color: var(--reserved);
   }
 
   .room-row.status-offered {
@@ -1902,5 +1890,503 @@ dialog.modal::backdrop {
   .booking-cancel-button {
     width: 100%;
     min-height: 44px;
+  }
+}
+
+/* ---------- Live room map demo ---------- */
+.room-map-header {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.room-map-brand {
+  color: inherit;
+  text-decoration: none;
+}
+
+.room-map-page {
+  width: min(100%, 1320px);
+  --room-map-status-available: var(--free);
+  --room-map-status-pending: var(--reserved);
+  --room-map-status-in-use: var(--busy);
+  --room-map-status-closed: var(--off);
+}
+
+.room-map-intro {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin: 0.5rem 0 1.35rem;
+}
+
+.room-map-intro h2 {
+  margin: 0.25rem 0 0.4rem;
+  font-size: clamp(1.7rem, 4vw, 2.4rem);
+  line-height: 1.2;
+}
+
+.room-map-intro p {
+  margin-bottom: 0;
+}
+
+.room-map-live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex: 0 0 auto;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.room-map-live-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--free);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--free) 16%, transparent);
+  animation: room-map-live-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes room-map-live-pulse {
+  50% { box-shadow: 0 0 0 7px color-mix(in srgb, var(--free) 8%, transparent); }
+}
+
+.room-map-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  margin-bottom: 1.25rem;
+  padding: 0.85rem 1rem;
+}
+
+.room-map-filter-capacity,
+.room-map-filter-available {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.room-map-seat-input {
+  width: 5.5rem;
+  min-height: 2.65rem;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--border);
+  border-radius: 0.65rem;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.room-map-filter-available input {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: var(--primary);
+}
+
+.room-map-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 15rem;
+  align-items: start;
+  gap: 1.25rem;
+}
+
+.room-map-main {
+  min-width: 0;
+}
+
+.room-map-floors {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 0.15rem 0 0.85rem;
+  scrollbar-width: thin;
+}
+
+.room-map-floor {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 2.9rem;
+  flex: 0 0 auto;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 0.8rem;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease;
+}
+
+.room-map-floor.is-active {
+  border-color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, var(--surface));
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+
+.room-map-floor-count {
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 500;
+}
+
+.room-map-summary {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  min-height: 2rem;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+}
+
+.room-map-summary strong {
+  color: var(--primary);
+  font-size: 1.08rem;
+}
+
+.room-map-summary-meta {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.room-map-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr));
+  gap: 0.85rem;
+}
+
+.room-map-card {
+  --room-map-accent: var(--primary);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.65rem;
+  min-width: 0;
+  min-height: 10.4rem;
+  padding: 0.95rem 1rem;
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--room-map-accent);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--room-map-accent) 9%, var(--surface));
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 160ms ease, border-color 220ms ease, background-color 220ms ease, box-shadow 160ms ease;
+}
+
+.room-map-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.room-map-card:focus-visible,
+.room-map-floor:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 60%, transparent);
+  outline-offset: 2px;
+}
+
+.room-map-card.status-available { --room-map-accent: var(--room-map-status-available); }
+.room-map-card.status-pending { --room-map-accent: var(--room-map-status-pending); }
+.room-map-card.status-in-use { --room-map-accent: var(--room-map-status-in-use); }
+.room-map-card.status-closed { --room-map-accent: var(--room-map-status-closed); }
+
+.room-map-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.55rem;
+}
+
+.room-map-name {
+  min-width: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.room-map-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex: 0 0 auto;
+  max-width: 65%;
+  padding: 0.28rem 0.5rem;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--room-map-accent) 15%, var(--surface));
+  color: var(--room-map-accent);
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: normal;
+}
+
+.room-map-status-dot,
+.room-map-legend-swatch,
+.room-map-detail-status .room-map-status-dot {
+  width: 0.52rem;
+  height: 0.52rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: var(--room-map-accent);
+}
+
+.room-map-seats {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.room-map-availability {
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.room-map-open-hint {
+  margin-top: auto;
+  color: var(--primary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.room-map-empty,
+.room-map-error {
+  grid-column: 1 / -1;
+  display: grid;
+  justify-items: start;
+  gap: 0.6rem;
+  padding: 1.25rem;
+  color: var(--text);
+}
+
+.room-map-legend {
+  position: sticky;
+  top: 1rem;
+  display: grid;
+  gap: 0.85rem;
+  padding: 1rem;
+}
+
+.room-map-legend h3 {
+  margin: 0 0 0.15rem;
+  font-size: 1rem;
+}
+
+.room-map-legend-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  color: var(--muted);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.room-map-legend-swatch {
+  margin-top: 0.3rem;
+}
+
+.room-map-legend-swatch.available { background: var(--free); }
+.room-map-legend-swatch.pending { background: var(--reserved); }
+.room-map-legend-swatch.in-use { background: var(--busy); }
+.room-map-legend-swatch.closed { background: var(--off); }
+
+.admin-section-tabs {
+  display: flex;
+  gap: 0.45rem;
+  margin: 0 0 1.25rem;
+  padding: 0.3rem;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: 0.9rem;
+  background: var(--surface-muted);
+}
+
+.admin-section-tab {
+  min-height: 2.8rem;
+  flex: 0 0 auto;
+  padding: 0.55rem 1rem;
+  border: 1px solid transparent;
+  border-radius: 0.7rem;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-section-tab.is-active {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--primary);
+  box-shadow: var(--shadow);
+}
+
+.admin-section-content {
+  min-width: 0;
+}
+
+.room-map-dialog {
+  width: min(28rem, calc(100% - 1.25rem));
+  --room-map-status-available: var(--free);
+  --room-map-status-pending: var(--reserved);
+  --room-map-status-in-use: var(--busy);
+  --room-map-status-closed: var(--off);
+}
+
+.room-map-detail {
+  gap: 1rem;
+}
+
+.room-map-detail-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.room-map-detail-heading .eyebrow,
+.room-map-detail-heading h2 {
+  margin: 0;
+}
+
+.room-map-detail-heading h2 {
+  margin-top: 0.25rem;
+  font-size: 1.6rem;
+}
+
+.room-map-detail-status {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--text);
+}
+
+.status-dot-available { --room-map-accent: var(--room-map-status-available); }
+.status-dot-pending { --room-map-accent: var(--room-map-status-pending); }
+.status-dot-in-use { --room-map-accent: var(--room-map-status-in-use); }
+.status-dot-closed { --room-map-accent: var(--room-map-status-closed); }
+
+.room-map-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.room-map-detail-item {
+  display: grid;
+  gap: 0.2rem;
+  min-width: 0;
+  padding: 0.75rem;
+  border-radius: 0.75rem;
+  background: var(--surface-muted);
+}
+
+.room-map-detail-availability,
+.room-map-closure,
+.room-map-booking-note {
+  margin: 0;
+}
+
+@media (max-width: 900px) {
+  .room-map-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .room-map-legend {
+    position: static;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .room-map-legend h3 {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .room-map-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .room-map-back {
+    min-height: 44px;
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: start;
+  }
+
+  .room-map-header .icon-button {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+  }
+
+  .room-map-intro {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.8rem;
+  }
+
+  .room-map-filters {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .room-map-filter-capacity {
+    justify-content: space-between;
+  }
+
+  .room-map-filter-available {
+    min-height: 44px;
+  }
+
+  .room-map-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+
+  .room-map-card {
+    min-height: 9.8rem;
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+
+  .room-map-card-top {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .room-map-status {
+    max-width: 100%;
+  }
+
+  .room-map-availability {
+    font-size: 0.82rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .room-map-grid,
+  .room-map-legend {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .admin-header-tools {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-content: space-between;
+    flex-wrap: wrap;
   }
 }

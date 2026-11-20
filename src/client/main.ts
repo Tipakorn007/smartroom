@@ -17,7 +17,6 @@ import type {
   LiveSnapshot,
   Room,
   RoomView,
-  StatsResponse,
   WaitlistEntry,
 } from "../shared/types";
 import { api } from "./api";
@@ -35,19 +34,16 @@ import { openBookingDialog } from "./views/booking";
 import { renderCheckinPage } from "./views/checkin";
 import { renderRecommendView } from "./views/recommend";
 import { renderRoomsView } from "./views/rooms";
-import { renderStatsView } from "./views/stats";
 import { showAcceptedOffer, openWaitlistDialog } from "./views/waitlist";
 import { renderMyBookingsView } from "./views/my-bookings";
 
-type Tab = "rooms" | "recommend" | "stats" | "my-bookings";
+type Tab = "rooms" | "recommend" | "my-bookings";
 
 const state: {
   tab: Tab;
   floor: number;
   rooms: RoomView[];
   roomsError: string | null;
-  stats: StatsResponse | null;
-  statsError: string | null;
   userId: string;
   myWaitlists: WaitlistEntry[];
   myBookings: BookingWithRoom[];
@@ -59,8 +55,6 @@ const state: {
   floor: 1,
   rooms: [],
   roomsError: null,
-  stats: null,
-  statsError: null,
   userId: "",
   myWaitlists: [],
   myBookings: [],
@@ -107,7 +101,10 @@ function buildShell(root: HTMLElement): void {
     attrs: { "aria-label": "สลับโหมดสว่างและโหมดมืด" },
   });
   const updateThemeLabel = (): void => {
-    themeButton.textContent = currentTheme() === "dark" ? "☀️ โหมดสว่าง" : "🌙 โหมดมืด";
+    const theme = currentTheme();
+    themeButton.textContent = theme === "dark" ? "☀️ โหมดสว่าง" : "🌙 โหมดมืด";
+    themeButton.title = `เปลี่ยนเป็นโหมด${theme === "dark" ? "สว่าง" : "มืด"}`;
+    themeButton.setAttribute("aria-label", themeButton.title);
   };
   updateThemeLabel();
   themeButton.addEventListener("click", () => {
@@ -119,7 +116,6 @@ function buildShell(root: HTMLElement): void {
   const tabs: Array<{ id: Tab; label: string }> = [
     { id: "rooms", label: "แผนผังห้อง" },
     { id: "recommend", label: "แนะนำห้อง" },
-    { id: "stats", label: "สถิติ" },
   ];
   tabs.push({ id: "my-bookings", label: "การจองของฉัน" });
   for (const tab of tabs) {
@@ -138,6 +134,11 @@ function buildShell(root: HTMLElement): void {
     });
     nav.append(button);
   }
+  nav.append(el("a", {
+    class: "tab room-map-nav-link",
+    attrs: { href: "/map", "aria-label": "เปิดแผนผังห้องแบบสด" },
+    text: "แผนผังสด",
+  }));
 
   const header = el("header", { class: "site-header" }, [
     el("div", { class: "header-inner" }, [
@@ -184,9 +185,7 @@ async function switchTab(tab: Tab, nav: HTMLElement): Promise<void> {
   });
 
   render();
-  if (tab === "stats") {
-    await loadStats();
-  } else if (tab === "my-bookings") {
+  if (tab === "my-bookings") {
     await loadBookingHistory();
   } else {
     await refreshRooms();
@@ -238,7 +237,6 @@ function render(): void {
     return;
   }
 
-  renderStatsView(contentElement, state.stats, state.statsError, () => void loadStats());
 }
 
 function retryCard(title: string, message: string, onRetry: () => void): HTMLElement {
@@ -279,19 +277,6 @@ async function refreshRooms(): Promise<void> {
   }
 }
 
-async function loadStats(): Promise<void> {
-  try {
-    state.stats = await api.stats();
-    state.statsError = null;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "โหลดสถิติไม่สำเร็จ";
-    const shouldNotify = state.statsError !== message;
-    state.statsError = message;
-    if (shouldNotify) showToast(message, "warn");
-  }
-  if (state.tab === "stats") render();
-}
-
 /**
  * Vercel Functions are stateless, so refresh data periodically instead of
  * keeping a WebSocket connection open.
@@ -309,7 +294,6 @@ function startPolling(): void {
 
 async function refreshAfterChange(): Promise<void> {
   await refreshRooms();
-  if (state.tab === "stats") await loadStats();
   if (state.tab === "my-bookings") await loadBookingHistory();
 }
 

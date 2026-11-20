@@ -127,6 +127,10 @@ export const api = {
     return request<RoomView[]>("/api/rooms");
   },
 
+  roomStatus(): Promise<RoomView[]> {
+    return request<RoomView[]>("/api/rooms/status");
+  },
+
   /** สร้างการจอง (server ตรวจห้องว่างและกันจองซ้อนให้) */
   createBooking(payload: CreateBookingRequest): Promise<CreateBookingResponse> {
     return request<CreateBookingResponse>("/api/bookings", {

@@ -34,6 +34,11 @@ async function serveStatic(pathname: string): Promise<Response> {
       headers: { "content-type": "text/html; charset=utf-8" },
     });
   }
+  if (pathname === "/map" || pathname === "/map/") {
+    return new Response(Bun.file(join(PUBLIC_DIR, "map.html")), {
+      headers: { "content-type": "text/html; charset=utf-8" },
+    });
+  }
   if (pathname === "/" || pathname.startsWith("/checkin/")) {
     return new Response(Bun.file(join(CLIENT_DIR, "index.html")), {
       headers: { "content-type": "text/html; charset=utf-8" },
@@ -44,7 +49,7 @@ async function serveStatic(pathname: string): Promise<Response> {
       headers: { "content-type": "text/css; charset=utf-8" },
     });
   }
-  if (pathname === "/main.js" || pathname === "/admin.js") {
+  if (pathname === "/main.js" || pathname === "/admin.js" || pathname === "/map.js") {
     const bundle = Bun.file(join(PUBLIC_DIR, pathname.slice(1)));
     if (await bundle.exists()) {
       return new Response(bundle, {

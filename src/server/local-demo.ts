@@ -417,6 +417,10 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
     return json(listRoomViews(now));
   }
 
+  if (pathname === "/api/rooms/status" && method === "GET") {
+    return json(listRoomViews(now));
+  }
+
   if (pathname === "/api/stats" && method === "GET") {
     return json(getStats(now));
   }

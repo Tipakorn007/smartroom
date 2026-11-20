@@ -122,28 +122,45 @@ export function showToast(message: string, tone: "info" | "warn" = "info"): void
 
 const THEME_KEY = "smartroom:theme";
 
-function systemPrefersDark(): boolean {
-  return window.matchMedia("(prefers-color-scheme: dark)").matches;
-}
-
 /**
  * ตั้งธีมตอนเปิดหน้า: ใช้ค่าที่ผู้ใช้เคยเลือกไว้ ถ้าไม่เคยเลือกให้ตามระบบ
  * เราเขียน data-theme ลง <html> ทุกครั้ง CSS จึงมีชุดสีเดียวต่อโหมด
  */
 export function initTheme(): void {
-  const saved = localStorage.getItem(THEME_KEY);
-  const theme = saved === "dark" || saved === "light" ? saved : systemPrefersDark() ? "dark" : "light";
-  document.documentElement.dataset.theme = theme;
+  let theme: "light" | "dark" = "light";
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === "dark" || saved === "merchant") theme = "dark";
+    else if (saved === "light") theme = "light";
+    else if (saved === "system") theme = "light";
+    else if (saved === "freudian" || saved === "intro" || saved === "north-block") theme = "light";
+  } catch {
+    // Keep the page usable when browser storage is unavailable.
+  }
+  applyTheme(theme);
 }
 
 /** สลับธีมแล้วคืนธีมใหม่ เพื่อให้ปุ่มอัปเดตข้อความได้ */
+function applyTheme(theme: "light" | "dark"): void {
+  document.documentElement.dataset.theme = theme;
+  const background = getComputedStyle(document.documentElement).getPropertyValue("--bg").trim();
+  const themeColor = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+  if (themeColor && background) themeColor.content = background;
+}
+
 export function toggleTheme(): "light" | "dark" {
-  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-  document.documentElement.dataset.theme = next;
-  localStorage.setItem(THEME_KEY, next);
+  const current = currentTheme();
+  const next = current === "dark" ? "light" : "dark";
+  applyTheme(next);
+  try {
+    localStorage.setItem(THEME_KEY, next);
+  } catch {
+    // Theme still applies for this page when persistence is unavailable.
+  }
   return next;
 }
 
 export function currentTheme(): "light" | "dark" {
-  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
+  const theme = document.documentElement.dataset.theme;
+  return theme === "dark" ? "dark" : "light";
 }

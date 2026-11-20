@@ -1,24 +1,53 @@
 import type { QuietLevel } from "../shared/types";
 import { api } from "./api";
-import { el, initTheme, showToast } from "./ui";
+import { currentTheme, el, initTheme, showToast, toggleTheme } from "./ui";
 import { renderRoomAdminView } from "./views/room-admin";
+import { renderStatsView } from "./views/stats";
 
 const root = document.getElementById("admin-app");
 
 if (root) {
   initTheme();
   const content = el("main", { class: "container" });
+  const sectionContent = el("section", { class: "admin-section-content" });
+  let activeSection: "rooms" | "stats" = "rooms";
+  const roomsTab = el("button", { class: "admin-section-tab is-active", type: "button", text: "จัดการห้อง" });
+  const statsTab = el("button", { class: "admin-section-tab", type: "button", text: "สถิติการใช้งาน" });
+  const sectionNav = el("nav", { class: "admin-section-tabs", attrs: { "aria-label": "เมนูระบบจัดการ" } }, [roomsTab, statsTab]);
+  roomsTab.addEventListener("click", () => {
+    activeSection = "rooms";
+    updateSectionTabs();
+    void loadRooms();
+  });
+  statsTab.addEventListener("click", () => {
+    activeSection = "stats";
+    updateSectionTabs();
+    void loadStats();
+  });
   const title = el("div", { class: "brand-text" }, [
     el("h1", {}, [el("span", { text: "Smart" }), el("span", { class: "brand-accent", text: "Room" })]),
     el("p", { text: "ระบบจัดการห้อง" }),
   ]);
   const accountActions = el("div", { class: "admin-account-actions" });
+  const themeButton = el("button", { class: "icon-button", type: "button", attrs: { "aria-label": "สลับโหมดสว่างและโหมดมืด" } });
+  const updateThemeLabel = (): void => {
+    const theme = currentTheme();
+    themeButton.textContent = theme === "dark" ? "☀️ โหมดสว่าง" : "🌙 โหมดมืด";
+    themeButton.title = `เปลี่ยนเป็นโหมด${theme === "dark" ? "สว่าง" : "มืด"}`;
+    themeButton.setAttribute("aria-label", themeButton.title);
+  };
+  updateThemeLabel();
+  themeButton.addEventListener("click", () => {
+    toggleTheme();
+    updateThemeLabel();
+  });
+  const headerTools = el("div", { class: "admin-header-tools" }, [themeButton, accountActions]);
   const header = el("header", { class: "site-header" }, [
     el("div", { class: "header-inner" }, [
       el("a", { class: "brand admin-brand", href: "/", attrs: { "aria-label": "กลับหน้า SmartRoom" } }, [
         el("img", { class: "brand-mark", attrs: { src: "/smartroom-icon.png", alt: "" } }), title,
       ]),
-      accountActions,
+      headerTools,
     ]),
   ]);
   const footer = el("footer", { class: "site-footer" }, [el("p", { text: "SmartRoom · ระบบจัดการพื้นที่ห้อง" })]);
@@ -29,6 +58,8 @@ if (root) {
     try {
       const session = await api.adminSession();
       if (!session.authenticated) return showLogin();
+      activeSection = "rooms";
+      updateSectionTabs();
       title.querySelector("p")!.textContent = session.demo ? "ระบบจัดการห้อง · โหมดเดโม" : "ระบบจัดการห้อง";
       if (session.demo) accountActions.replaceChildren(el("a", { class: "button ghost", href: "/", text: "ไปหน้าเว็บผู้ใช้" }));
       else {
@@ -36,10 +67,18 @@ if (root) {
         logout.addEventListener("click", () => void logoutAdmin());
         accountActions.replaceChildren(el("a", { class: "button ghost", href: "/", text: "หน้าเว็บผู้ใช้" }), logout);
       }
+      content.replaceChildren(sectionNav, sectionContent);
       await loadRooms();
     } catch (error) {
       showLogin(error instanceof Error ? error.message : "เชื่อมต่อระบบจัดการไม่ได้");
     }
+  }
+
+  function updateSectionTabs(): void {
+    roomsTab.classList.toggle("is-active", activeSection === "rooms");
+    statsTab.classList.toggle("is-active", activeSection === "stats");
+    roomsTab.setAttribute("aria-current", String(activeSection === "rooms"));
+    statsTab.setAttribute("aria-current", String(activeSection === "stats"));
   }
 
   function showLogin(message = ""): void {
@@ -75,15 +114,33 @@ if (root) {
   async function loadRooms(): Promise<void> {
     try {
       const { rooms } = await api.adminRooms();
-      renderRoomAdminView(content, rooms, saveRoom, toggleRoom, addMaintenance, removeMaintenance);
+      if (activeSection !== "rooms") return;
+      renderRoomAdminView(sectionContent, rooms, saveRoom, toggleRoom, addMaintenance, removeMaintenance);
     } catch (error) {
+      if (activeSection !== "rooms") return;
       if (error instanceof Error && error.message.includes("เข้าสู่ระบบ")) return showLogin(error.message);
-      content.replaceChildren(el("section", { class: "card stack" }, [
+      sectionContent.replaceChildren(el("section", { class: "card stack" }, [
         el("h2", { text: "โหลดข้อมูลห้องไม่สำเร็จ" }),
         el("p", { class: "muted", text: error instanceof Error ? error.message : "เชื่อมต่อระบบจัดการไม่ได้" }),
         el("button", { class: "button primary", type: "button", text: "ลองอีกครั้ง" }),
       ]));
-      content.querySelector("button")?.addEventListener("click", () => void loadRooms());
+      sectionContent.querySelector("button")?.addEventListener("click", () => void loadRooms());
+    }
+  }
+
+  async function loadStats(): Promise<void> {
+    try {
+      const stats = await api.stats();
+      if (activeSection === "stats") {
+        sectionContent.replaceChildren();
+        renderStatsView(sectionContent, stats);
+      }
+    } catch (error) {
+      if (activeSection !== "stats") return;
+      if (error instanceof Error && error.message.includes("เข้าสู่ระบบ")) return showLogin(error.message);
+      const message = error instanceof Error ? error.message : "โหลดสถิติไม่สำเร็จ";
+      sectionContent.replaceChildren();
+      renderStatsView(sectionContent, null, message, () => void loadStats());
     }
   }
 

@@ -124,7 +124,14 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
     return json(await listRoomViews(Date.now()));
   }
 
+  if (pathname === "/api/rooms/status" && method === "GET") {
+    const now = Date.now();
+    await releaseExpiredBookings(now);
+    return json(await listRoomViews(now));
+  }
+
   if (pathname === "/api/stats" && method === "GET") {
+    requireAdmin(request);
     await releaseExpiredBookings(Date.now());
     return json(await getStats());
   }
