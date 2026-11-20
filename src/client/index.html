@@ -18,7 +18,7 @@
     <link rel="apple-touch-icon" href="/smartroom-icon.png" />
     <title>SmartRoom — จองห้องติวที่รู้สถานะจริง</title>
 
-    <!-- เธเธญเธเธ•เนเนเธ—เธขเธญเนเธฒเธเธเนเธฒเธข เธ–เนเธฒเนเธซเธฅเธ”เนเธกเนเนเธ”เนเธเธฐ fallback เน€เธเนเธเธเธญเธเธ•เนเนเธ—เธขเธเธญเธเธฃเธฐเธเธ -->
+    <!-- Thai web font with system font fallbacks. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -28,10 +28,10 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
-    <!-- frontend เธชเธฃเนเธฒเธเธ—เธธเธเธญเธขเนเธฒเธเนเธ div เธเธตเนเธ”เนเธงเธข TypeScript (เนเธกเนเธกเธต innerHTML) -->
+    <!-- The TypeScript application renders inside this element. -->
     <div id="app"></div>
 
-    <!-- เธเธทเนเธเธ—เธตเนเนเธเนเธเน€เธ•เธทเธญเธ -->
+    <!-- Accessible live region for notifications. -->
     <div id="toast-area" class="toast-area" role="status" aria-live="polite"></div>
 
     <script type="module" src="/main.js"></script>
