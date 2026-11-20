@@ -74,7 +74,8 @@ export function renderRoomAdminView(
     const term = search.value.trim().toLowerCase();
     const floor = floorSelect.value;
     for (const { element, room } of roomDetails) {
-      element.hidden = !(room.name.toLowerCase().includes(term) && (floor === "all" || String(room.floor) === floor));
+      const matchesSearch = room.name.toLowerCase().includes(term) || `ชั้น ${room.floor}`.includes(term);
+      element.hidden = !(matchesSearch && (floor === "all" || String(room.floor) === floor));
     }
   };
   search.addEventListener("input", applyFilter); floorSelect.addEventListener("change", applyFilter);

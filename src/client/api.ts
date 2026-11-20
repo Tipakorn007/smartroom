@@ -61,6 +61,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new ApiError(message, response.status);
   }
 
+  if (data === null) {
+    throw new ApiError("เซิร์ฟเวอร์ส่งข้อมูลไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง", response.status);
+  }
+
   return data as T;
 }
 
@@ -69,8 +73,8 @@ export const api = {
     return request("/api/admin/session");
   },
 
-  adminLogin(username: string, password: string): Promise<{ authenticated: true }> {
-    return request("/api/admin/login", { method: "POST", body: JSON.stringify({ username, password }) });
+  adminLogin(password: string): Promise<{ authenticated: true }> {
+    return request("/api/admin/login", { method: "POST", body: JSON.stringify({ password }) });
   },
 
   adminLogout(): Promise<{ authenticated: false }> {

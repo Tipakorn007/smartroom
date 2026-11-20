@@ -69,12 +69,9 @@ if (root) {
       activeSection = "rooms";
       updateSectionTabs();
       title.querySelector("p")!.textContent = session.demo ? "ระบบจัดการห้อง · โหมดเดโม" : "ระบบจัดการห้อง";
-      if (session.demo) accountActions.replaceChildren();
-      else {
-        const logout = el("button", { class: "button ghost", type: "button", text: "ออกจากระบบ" });
-        logout.addEventListener("click", () => void logoutAdmin());
-        accountActions.replaceChildren(logout);
-      }
+      const logout = el("button", { class: "button ghost", type: "button", text: "ออกจากระบบ" });
+      logout.addEventListener("click", () => void logoutAdmin());
+      accountActions.replaceChildren(logout);
       content.replaceChildren(sectionNav, sectionContent);
       await loadRooms();
     } catch (error) {
@@ -96,18 +93,17 @@ if (root) {
     const heading = el("div", { class: "section-heading" }, [
       el("p", { class: "eyebrow", text: "STAFF ACCESS" }),
       el("h2", { text: "เข้าสู่ระบบจัดการ" }),
-      el("p", { class: "muted", text: "ใช้บัญชีเจ้าหน้าที่เพื่อจัดการห้องและเวลาปิดปรับปรุง" }),
+      el("p", { class: "muted", text: "กรอกรหัสผ่านผู้ดูแลเพื่อจัดการห้องและเวลาปิดปรับปรุง" }),
     ]);
-    const username = document.createElement("input"); username.name = "username"; username.autocomplete = "username"; username.required = true; username.placeholder = "ชื่อผู้ใช้"; username.setAttribute("aria-label", "ชื่อผู้ใช้");
     const password = document.createElement("input"); password.type = "password"; password.name = "password"; password.autocomplete = "current-password"; password.required = true; password.placeholder = "รหัสผ่าน"; password.setAttribute("aria-label", "รหัสผ่าน");
     const error = el("p", { class: "alert", text: message });
     const submit = el("button", { class: "button primary", type: "submit", text: "เข้าสู่ระบบ" });
-    form.append(heading, username, password);
+    form.append(heading, password);
     if (message) form.append(error);
     form.append(submit);
     form.addEventListener("submit", async (event) => {
       event.preventDefault(); submit.disabled = true;
-      try { await api.adminLogin(username.value, password.value); await bootstrap(); }
+      try { await api.adminLogin(password.value); await bootstrap(); }
       catch (cause) { showLogin(cause instanceof Error ? cause.message : "เข้าสู่ระบบไม่สำเร็จ"); }
     });
     content.replaceChildren(form);

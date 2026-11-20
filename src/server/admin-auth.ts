@@ -19,8 +19,9 @@ function equalSecret(left: string, right: string): boolean {
 function signature(expiresAt: string): string {
   const secret = required("ADMIN_SESSION_SECRET");
   if (secret.length < 32) throw new HttpError(503, "ADMIN_SESSION_SECRET ต้องยาวอย่างน้อย 32 ตัวอักษร");
+  const password = required("ADMIN_PASSWORD");
   return createHmac("sha256", secret)
-    .update(`smartroom-admin:${expiresAt}`)
+    .update(`smartroom-admin:${expiresAt}:${password}`)
     .digest("hex");
 }
 
@@ -32,7 +33,7 @@ function cookieValue(request: Request): string | null {
 
 export function adminSessionValid(request: Request): boolean {
   try {
-    if (!process.env.ADMIN_USERNAME || !process.env.ADMIN_PASSWORD) return false;
+    if (!process.env.ADMIN_PASSWORD) return false;
     const value = cookieValue(request);
     if (!value) return false;
     const [expiresAt, provided] = value.split(".");
@@ -54,13 +55,10 @@ export function assertSameOrigin(request: Request): void {
   if (origin !== expected) throw new HttpError(403, "คำขอไม่ผ่านการตรวจสอบต้นทาง");
 }
 
-export function loginAdmin(request: Request, username: unknown, password: unknown): Response {
-  const expectedUser = required("ADMIN_USERNAME");
+export function loginAdmin(request: Request, password: unknown): Response {
   const expectedPassword = required("ADMIN_PASSWORD");
-  if (!expectedPassword) throw new HttpError(503, "กรุณาตั้งค่า ADMIN_PASSWORD");
-  if (typeof username !== "string" || typeof password !== "string" ||
-      !equalSecret(username, expectedUser) || !equalSecret(password, expectedPassword)) {
-    throw new HttpError(401, "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง");
+  if (typeof password !== "string" || !equalSecret(password, expectedPassword)) {
+    throw new HttpError(401, "รหัสผ่านไม่ถูกต้อง");
   }
   const expiresAt = String(Date.now() + SESSION_MS);
   const value = `${expiresAt}.${signature(expiresAt)}`;

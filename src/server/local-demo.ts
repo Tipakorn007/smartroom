@@ -22,6 +22,7 @@ import type {
   WaitlistEntry,
 } from "../shared/types.ts";
 import { HttpError, json, readJsonBody, sse } from "./http.ts";
+import { adminSessionValid, assertSameOrigin, loginAdmin, logoutAdmin, requireAdmin } from "./admin-auth.ts";
 import { rankRooms } from "./recommend.ts";
 import {
   validateDuration,
@@ -404,7 +405,20 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
   const now = Date.now();
 
   if (pathname === "/api/admin/session" && method === "GET") {
-    return json({ authenticated: true, demo: true });
+    return json({ authenticated: adminSessionValid(request), demo: true });
+  }
+  if (pathname === "/api/admin/login" && method === "POST") {
+    assertSameOrigin(request);
+    const body = await readJsonBody(request);
+    return loginAdmin(request, body.password);
+  }
+  if (pathname === "/api/admin/logout" && method === "POST") {
+    assertSameOrigin(request);
+    return logoutAdmin();
+  }
+  if (pathname.startsWith("/api/admin/rooms")) {
+    requireAdmin(request);
+    if (method !== "GET") assertSameOrigin(request);
   }
 
   if ((pathname === "/api/live" || pathname === "/api/events") && method === "GET") {
@@ -422,6 +436,7 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
   }
 
   if (pathname === "/api/stats" && method === "GET") {
+    requireAdmin(request);
     return json(getStats(now));
   }
 
@@ -493,35 +508,37 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
     const roomId = validateRoomId(adminRoomMatch[1]);
     const room = getRoom(roomId);
     const body = await readJsonBody(request);
+    const updatedRoom = { ...room };
     if (body.enabled === false && hasScheduledBooking(roomId, now)) {
       throw new HttpError(409, "ยังมีการจองในห้องนี้ จึงปิดใช้งานไม่ได้");
-    }
-    if (typeof body.enabled === "boolean") {
-      if (body.enabled) disabledRoomIds.delete(roomId);
-      else disabledRoomIds.add(roomId);
     }
     if (body.name !== undefined) {
       const name = validateUserName(body.name);
       if (DEMO_ROOMS.some((item) => item.id !== roomId && item.name.toLowerCase() === name.toLowerCase())) {
         throw new HttpError(409, "มีชื่อห้องนี้แล้ว");
       }
-      room.name = name;
+      updatedRoom.name = name;
     }
     if (body.floor !== undefined) {
       const floor = Number(body.floor);
       if (!Number.isInteger(floor) || floor < 1 || floor > 30) throw new HttpError(400, "ชั้นต้องอยู่ระหว่าง 1-30");
-      room.floor = floor;
+      updatedRoom.floor = floor;
     }
     if (body.capacity !== undefined) {
       const capacity = Number(body.capacity);
       if (!Number.isInteger(capacity) || capacity < 1 || capacity > 50) throw new HttpError(400, "ความจุต้องอยู่ระหว่าง 1-50 คน");
-      room.capacity = capacity;
+      updatedRoom.capacity = capacity;
     }
-    if (typeof body.hasPower === "boolean") room.hasPower = body.hasPower;
-    if (typeof body.hasWhiteboard === "boolean") room.hasWhiteboard = body.hasWhiteboard;
+    if (typeof body.hasPower === "boolean") updatedRoom.hasPower = body.hasPower;
+    if (typeof body.hasWhiteboard === "boolean") updatedRoom.hasWhiteboard = body.hasWhiteboard;
     if (body.quietLevel !== undefined) {
       if (!["quiet", "normal", "group"].includes(String(body.quietLevel))) throw new HttpError(400, "ระดับความเงียบไม่ถูกต้อง");
-      room.quietLevel = body.quietLevel as Room["quietLevel"];
+      updatedRoom.quietLevel = body.quietLevel as Room["quietLevel"];
+    }
+    Object.assign(room, updatedRoom);
+    if (typeof body.enabled === "boolean") {
+      if (body.enabled) disabledRoomIds.delete(roomId);
+      else disabledRoomIds.add(roomId);
     }
     return json({ ...room, enabled: !disabledRoomIds.has(roomId) });
   }

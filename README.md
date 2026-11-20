@@ -18,7 +18,6 @@
 
    ```text
    DATABASE_URL=postgresql://...
-   ADMIN_USERNAME=ชื่อผู้ใช้แอดมิน
    ADMIN_PASSWORD=รหัสผ่านแอดมิน
    ADMIN_SESSION_SECRET=สุ่มค่าอย่างน้อย 32 ตัวอักษร
    ```
@@ -32,21 +31,22 @@
 
 5. เปิด `http://localhost:3000` และหน้าแอดมินที่ `/admin`
 
-โหมดเดโมไม่ต้องตั้งค่า `.env` และไม่เชื่อมฐานข้อมูล หากต้องการทดสอบระบบแอดมินที่บันทึกลง Neon ให้ใช้ `bun run dev:database` หลังตั้งค่าตัวแปรด้านบน
-หน้าแอดมินของเดโมเปิดให้ทดลองโดยไม่ต้องล็อกอินและเซิร์ฟเวอร์เดโมผูกไว้กับเครื่องนี้เท่านั้น; บน Vercel ต้องใช้บัญชีและรหัสผ่านจาก Environment Variables
+โหมดเดโมไม่เชื่อมฐานข้อมูล แต่ต้องตั้งค่า `ADMIN_PASSWORD` และ `ADMIN_SESSION_SECRET` ใน `.env` หรือ `.env.local` เพื่อเข้าสู่ระบบแอดมิน เซิร์ฟเวอร์เดโมในเครื่องผูกไว้กับเครื่องนี้เท่านั้น หากต้องการทดสอบระบบแอดมินที่บันทึกลง Neon ให้ใช้ `bun run dev:database` หลังตั้งค่าตัวแปรด้านบน
+
+**การตั้งค่า Vercel ในโปรเจกต์นี้เปิดโหมดเดโมอยู่** (`SMARTROOM_LOCAL_DEMO=true` ใน `vercel.json`) ข้อมูลอยู่ในหน่วยความจำของแต่ละ Function ซึ่งอาจหายหรือไม่ตรงกันระหว่างคำขอ ไม่เหมาะกับการจองจริง
 
 Schema และข้อมูลตัวอย่างจะถูกสร้างโดยอัตโนมัติเมื่อมีการเรียก API ครั้งแรก รวมถึงตารางคิวรอห้อง
 
 ## Deploy ด้วย GitHub และ Vercel
 
 1. Push โค้ดขึ้น GitHub โดยอย่า push ไฟล์ `.env` หรือ connection string
-2. สร้างโปรเจกต์ฐานข้อมูลบน Neon แล้วคัดลอก `DATABASE_URL`
+2. หากต้องการใช้ฐานข้อมูลจริง ให้ปิดโหมดเดโมใน `vercel.json` แล้วสร้างโปรเจกต์ฐานข้อมูลบน Neon และคัดลอก `DATABASE_URL`
 3. ใน Vercel เลือก **Add New Project** และ Import repository จาก GitHub
-4. ใน Project Settings → Environment Variables เพิ่ม `DATABASE_URL`, `ADMIN_USERNAME`, `ADMIN_PASSWORD` และ `ADMIN_SESSION_SECRET` สำหรับ Production (และ Preview หากต้องการ)
+4. ใน Project Settings → Environment Variables ตั้ง `ADMIN_PASSWORD` เป็นรหัสผ่านที่คาดเดายาก และ `ADMIN_SESSION_SECRET` เป็นค่าสุ่มอย่างน้อย 32 ตัวอักษร สำหรับ Production (และ Preview หากต้องการ) หากใช้ฐานข้อมูลจริงให้เพิ่ม `DATABASE_URL` ด้วย อย่าเก็บค่าจริงในโค้ดหรือส่งเข้า Git
 5. Deploy โปรเจกต์ Vercel จะรัน `bun run build` เพื่อสร้างไฟล์ frontend และ bundle API handler สำหรับ Function
 6. เปิด URL ที่ Vercel ให้มา
 
-เว็บผู้ใช้และระบบจัดการอยู่ใน Vercel โปรเจกต์เดียวกัน: หน้าเว็บผู้ใช้ที่ `/` และระบบจัดการที่ `/admin` ระบบจัดการใช้ session cookie แบบ HttpOnly/SameSite และ API จัดการห้องตรวจ session ทุกครั้ง หากไม่ได้ตั้งค่า admin environment variables จะยังเข้าสู่ระบบจัดการไม่ได้
+เว็บผู้ใช้และระบบจัดการอยู่ใน Vercel โปรเจกต์เดียวกัน: หน้าเว็บผู้ใช้ที่ `/` และระบบจัดการที่ `/admin` ทั้งสองโหมดต้องใช้รหัสผ่านเข้าสู่ระบบแอดมิน โดยใช้ session cookie แบบ HttpOnly/SameSite และ API จัดการห้องตรวจ session ทุกครั้ง หากไม่ได้ตั้งค่า admin environment variables จะยังเข้าสู่ระบบจัดการไม่ได้ การเปลี่ยนรหัสผ่านจะทำให้ session เดิมใช้ไม่ได้
 
 Vercel Functions ไม่เปิด WebSocket ค้างไว้ แอปจึง polling สถานะล่าสุดทุก 10 วินาที และหน้าเช็กอินมี SSE สำรองสำหรับข้อมูลการจองนั้น
 การหมดเวลา เช็กอิน และข้อเสนอคิวจะถูกประมวลผลเมื่อมีการเรียก API ครั้งถัดไป

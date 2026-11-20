@@ -285,7 +285,7 @@ function retryCard(title: string, message: string, onRetry: () => void): HTMLEle
 async function refreshRooms(): Promise<void> {
   try {
     const snapshot = await api.live(state.userId);
-    applyLiveSnapshot(snapshot);
+    const shouldRender = !state.initialized || state.roomsError !== null;
     state.roomsError = null;
 
     // ครั้งแรกให้เลือกชั้นของห้องว่างห้องแรก เพื่อให้ผู้ใช้เห็นห้องที่จองได้ทันที
@@ -294,6 +294,7 @@ async function refreshRooms(): Promise<void> {
       const firstAvailable = snapshot.rooms.find((room) => room.status === "available");
       state.floor = firstAvailable?.floor ?? snapshot.rooms[0]?.floor ?? 1;
     }
+    applyLiveSnapshot(snapshot, shouldRender);
 
   } catch (error) {
     const message = error instanceof Error ? error.message : "โหลดข้อมูลห้องไม่สำเร็จ";
@@ -346,13 +347,14 @@ async function cancelBooking(token: string): Promise<void> {
   }
 }
 
-function applyLiveSnapshot(snapshot: LiveSnapshot): void {
+function applyLiveSnapshot(snapshot: LiveSnapshot, forceRender = false): void {
   const roomStateChanged = JSON.stringify(snapshot.rooms) !== JSON.stringify(state.rooms);
+  const waitlistChanged = JSON.stringify(snapshot.myWaitlists) !== JSON.stringify(state.myWaitlists);
   state.rooms = snapshot.rooms;
   state.myWaitlists = snapshot.myWaitlists;
   state.myBookings = snapshot.myBookings;
   updateLiveNotices();
-  if (state.tab === "rooms" && roomStateChanged) render();
+  if (state.tab === "rooms" && (roomStateChanged || waitlistChanged || forceRender)) render();
 }
 
 function updateLiveNotices(): void {

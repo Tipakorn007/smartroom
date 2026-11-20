@@ -57,7 +57,7 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
   if (pathname === "/api/admin/login" && method === "POST") {
     assertSameOrigin(request);
     const body = await readJsonBody(request);
-    return loginAdmin(request, body.username, body.password);
+    return loginAdmin(request, body.password);
   }
   if (pathname === "/api/admin/logout" && method === "POST") {
     assertSameOrigin(request);

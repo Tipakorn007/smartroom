@@ -177,6 +177,15 @@ export function openBookingDialog(room: Room, userId: string, onCreated: () => v
         document.createTextNode(" ไม่อย่างนั้นห้องจะถูกปล่อยคืนอัตโนมัติ"),
       ]),
       checkinLink,
+      el("div", { class: "field" }, [
+        el("label", { text: "ลิงก์เช็กอิน", attrs: { for: "checkin-link" } }),
+        el("input", {
+          id: "checkin-link",
+          type: "text",
+          value: result.checkinUrl,
+          attrs: { readonly: "" },
+        }),
+      ]),
       copyButton,
     );
   }
