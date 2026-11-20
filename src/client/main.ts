@@ -263,7 +263,7 @@ function render(): void {
   }
 
   if (state.tab === "my-bookings") {
-    renderMyBookingsView(contentElement, state.bookingHistory, state.waitlistHistory, state.rooms, editBooking, cancelBooking);
+    renderMyBookingsView(contentElement, state.bookingHistory, state.waitlistHistory, cancelBooking);
     return;
   }
 }
@@ -332,16 +332,6 @@ async function loadBookingHistory(): Promise<void> {
     if (state.tab === "my-bookings") render();
   } catch (error) {
     showToast(error instanceof Error ? error.message : "โหลดประวัติไม่สำเร็จ", "warn");
-  }
-}
-
-async function editBooking(token: string, roomId: number, durationMinutes: number, startAt: number): Promise<void> {
-  try {
-    await api.editBooking(token, { roomId, durationMinutes, startAt });
-    showToast("แก้ไขการจองแล้ว");
-    await Promise.all([loadBookingHistory(), refreshRooms()]);
-  } catch (error) {
-    showToast(error instanceof Error ? error.message : "แก้ไขการจองไม่สำเร็จ", "warn");
   }
 }
 

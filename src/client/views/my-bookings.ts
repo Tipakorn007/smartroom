@@ -1,25 +1,17 @@
-import type { BookingHistoryEntry, RoomView, WaitlistEntry } from "../../shared/types";
+import type { BookingHistoryEntry, WaitlistEntry } from "../../shared/types";
 import { el, formatDateTime } from "../ui";
-
-function localDateValue(timestamp: number): string {
-  const date = new Date(timestamp);
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 16);
-}
 
 export function renderMyBookingsView(
   container: HTMLElement,
   entries: BookingHistoryEntry[],
   waitlists: WaitlistEntry[],
-  rooms: RoomView[],
-  onEdit: (token: string, roomId: number, durationMinutes: number, startAt: number) => void,
   onCancel: (token: string) => void,
 ): void {
   const page = el("section", { class: "stack my-bookings-page" }, [
     el("div", { class: "section-heading" }, [
       el("p", { class: "eyebrow", text: "บัญชีในอุปกรณ์นี้" }),
       el("h2", { text: "การจองของฉัน" }),
-      el("p", { class: "muted", text: "ดูสถานะและประวัติการจอง แก้ไขหรือยกเลิกรายการที่ยังไม่เช็กอินได้" }),
+      el("p", { class: "muted", text: "ดูสถานะ ยืนยันหรือเช็กอิน และยกเลิกการจองที่ยังไม่เช็กอินได้" }),
     ]),
   ]);
 
@@ -38,47 +30,14 @@ export function renderMyBookingsView(
     ]);
 
     if (booking.status === "pending" && !entry.cancelled) {
-      const editForm = document.createElement("form");
-      editForm.className = "booking-edit-form";
-      const roomSelect = document.createElement("select");
-      roomSelect.name = "roomId";
-      roomSelect.setAttribute("aria-label", "ห้อง");
-      for (const candidate of rooms.filter((item) => item.id === room.id || item.status === "available")) {
-        const option = document.createElement("option");
-        option.value = String(candidate.id);
-        option.textContent = `${candidate.name} · ชั้น ${candidate.floor}`;
-        option.selected = candidate.id === room.id;
-        roomSelect.append(option);
-      }
-      const duration = document.createElement("select");
-      duration.name = "duration";
-      duration.setAttribute("aria-label", "ระยะเวลา");
-      for (const minutes of [30, 60, 120]) {
-        const option = document.createElement("option");
-        option.value = String(minutes);
-        option.textContent = `${minutes} นาที`;
-        option.selected = booking.endAt - booking.startAt === minutes * 60_000;
-        duration.append(option);
-      }
-      const start = document.createElement("input");
-      start.type = "datetime-local";
-      start.name = "startAt";
-      start.value = localDateValue(Math.max(booking.startAt, Date.now() + 5 * 60_000));
-      start.min = localDateValue(Date.now() + 5 * 60_000);
-      start.max = localDateValue(Date.now() + 7 * 24 * 60 * 60_000);
-      start.setAttribute("aria-label", "เวลาเริ่ม");
-      const save = document.createElement("button");
-      save.type = "submit";
-      save.className = "button primary";
-      save.textContent = "บันทึกการแก้ไข";
-      editForm.append(roomSelect, duration, start, save);
-      editForm.addEventListener("submit", (event) => {
-        event.preventDefault();
-        onEdit(booking.token, Number(roomSelect.value), Number(duration.value), new Date(start.value).getTime());
+      const confirm = el("a", {
+        class: "button primary",
+        href: `/checkin/${booking.token}`,
+        text: "ยืนยัน/เช็กอิน",
       });
       const cancel = el("button", { class: "button ghost booking-cancel-button", type: "button", text: "ยกเลิกการจอง" });
       cancel.addEventListener("click", () => onCancel(booking.token));
-      card.append(editForm, cancel);
+      card.append(el("div", { class: "live-notice-actions" }, [confirm, cancel]));
     }
     page.append(card);
   }
