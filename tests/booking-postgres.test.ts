@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { randomBytes } from "node:crypto";
 import { neon } from "@neondatabase/serverless";
-import { addRoomMaintenance, removeRoomMaintenance, updateManagedRoom } from "../src/server/admin-rooms.ts";
+import { addRoomMaintenance, removeRoom, removeRoomMaintenance, updateManagedRoom } from "../src/server/admin-rooms.ts";
 import { cancelPendingBooking, checkIn, createBooking, editPendingBooking, extendBooking, leaveBooking } from "../src/server/bookings.ts";
 import { ensureDatabase } from "../src/server/db.ts";
 import { HttpError } from "../src/server/http.ts";
@@ -49,6 +49,9 @@ test.skipIf(!enabled)("PostgreSQL booking times respect check-in and maintenance
   };
 
   try {
+    const planned = await addRoomMaintenance(roomId, now + 60 * minute, now + 90 * minute, "Test");
+    await expectConflict(removeRoom(roomId));
+    await removeRoomMaintenance(roomId, planned.id);
     for (let attempt = 0; attempt < 4; attempt++) {
       await sql.query("UPDATE rooms SET floor=1, capacity=4 WHERE id=$1", [roomId]);
       await Promise.all([
@@ -83,6 +86,11 @@ test.skipIf(!enabled)("PostgreSQL booking times respect check-in and maintenance
     await expectConflict(checkIn(late.booking.token));
     const missed = await sql.query("SELECT status, no_show FROM bookings WHERE token = $1", [late.booking.token]);
     expect(missed[0]).toMatchObject({ status: "released", no_show: true });
+    await expectConflict(removeRoom(roomId));
+    await sql.query("DELETE FROM bookings WHERE room_id = $1", [roomId]);
+    await sql.query("DELETE FROM room_maintenance WHERE room_id = $1", [roomId]);
+    await removeRoom(roomId);
+    await expect(removeRoom(roomId)).rejects.toMatchObject({ status: 404 });
   } finally {
     Date.now = originalNow;
     await sql.query("DELETE FROM waitlist WHERE room_id = $1", [roomId]);

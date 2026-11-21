@@ -90,12 +90,15 @@ export async function removeRoomMaintenance(roomId: number, maintenanceId: numbe
 
 export async function removeRoom(roomId: number): Promise<void> {
   await ensureDatabase();
-  const bookings = await query("SELECT id FROM bookings WHERE room_id=$1 LIMIT 1", [roomId]);
-  const maintenance = await query("SELECT id FROM room_maintenance WHERE room_id=$1 LIMIT 1", [roomId]);
-  const waitlists = await query("SELECT id FROM waitlist WHERE room_id=$1 LIMIT 1", [roomId]);
-  if (bookings.length || maintenance.length || waitlists.length) {
-    throw new HttpError(409, "ห้องนี้มีประวัติหรือคิวแล้ว ให้ปิดใช้งานแทนการลบ");
-  }
-  const rows = await query("DELETE FROM rooms WHERE id=$1 RETURNING id", [roomId]);
-  if (!rows.length) throw new HttpError(404, "ไม่พบห้องนี้");
+  const rows = await queryForRoom(roomId, `
+    DELETE FROM rooms WHERE id=$1
+      AND NOT EXISTS (SELECT 1 FROM bookings WHERE room_id=$1)
+      AND NOT EXISTS (SELECT 1 FROM room_maintenance WHERE room_id=$1)
+      AND NOT EXISTS (SELECT 1 FROM waitlist WHERE room_id=$1)
+    RETURNING id
+  `, [roomId]);
+  if (rows.length) return;
+  const existing = await query("SELECT id FROM rooms WHERE id=$1", [roomId]);
+  if (!existing.length) throw new HttpError(404, "ไม่พบห้องนี้");
+  throw new HttpError(409, "ห้องนี้มีประวัติ คิว หรือช่วงปิดปรับปรุง ให้ปิดใช้งานแทนการลบ");
 }

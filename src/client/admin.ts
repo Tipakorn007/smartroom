@@ -71,7 +71,19 @@ if (root) {
       title.querySelector("p")!.textContent = session.demo ? "ระบบจัดการห้อง · โหมดเดโม" : "ระบบจัดการห้อง";
       const logout = el("button", { class: "button ghost", type: "button", text: "ออกจากระบบ" });
       logout.addEventListener("click", () => void logoutAdmin());
-      accountActions.replaceChildren(logout);
+      const lineTest = el("button", { class: "button ghost", type: "button", text: "ส่งข้อความทดสอบไป LINE" });
+      lineTest.addEventListener("click", async () => {
+        lineTest.disabled = true;
+        try {
+          await api.adminLineTest();
+          showToast("ส่งข้อความทดสอบไป LINE สำเร็จ");
+        } catch (error) {
+          showToast(error instanceof Error ? error.message : "ส่งข้อความทดสอบไป LINE ไม่สำเร็จ", "warn");
+        } finally {
+          lineTest.disabled = false;
+        }
+      });
+      accountActions.replaceChildren(lineTest, logout);
       content.replaceChildren(sectionNav, sectionContent);
       await loadRooms();
     } catch (error) {
@@ -118,7 +130,7 @@ if (root) {
     try {
       const { rooms } = await api.adminRooms();
       if (activeSection !== "rooms") return;
-      renderRoomAdminView(sectionContent, rooms, saveRoom, toggleRoom, addMaintenance, removeMaintenance);
+      renderRoomAdminView(sectionContent, rooms, saveRoom, toggleRoom, deleteRoom, addMaintenance, removeMaintenance);
     } catch (error) {
       if (activeSection !== "rooms") return;
       if (error instanceof Error && error.message.includes("เข้าสู่ระบบ")) return showLogin(error.message);
@@ -159,6 +171,12 @@ if (root) {
   async function toggleRoom(roomId: number, enabled: boolean): Promise<void> {
     try { await api.updateRoom(roomId, { enabled }); showToast(enabled ? "เปิดใช้งานห้องแล้ว" : "ปิดใช้งานห้องแล้ว"); await loadRooms(); }
     catch (error) { showToast(error instanceof Error ? error.message : "เปลี่ยนสถานะห้องไม่สำเร็จ", "warn"); }
+  }
+
+  async function deleteRoom(roomId: number, name: string): Promise<void> {
+    if (!window.confirm(`ยืนยันลบห้อง ${name} หรือไม่? การลบไม่สามารถย้อนกลับได้`)) return;
+    try { await api.deleteRoom(roomId); showToast("ลบห้องแล้ว"); await loadRooms(); }
+    catch (error) { showToast(error instanceof Error ? error.message : "ลบห้องไม่สำเร็จ", "warn"); }
   }
 
   async function addMaintenance(roomId: number, startsAt: number, endsAt: number, reason: string): Promise<void> {

@@ -140,6 +140,7 @@ async function initializeDatabase(): Promise<void> {
   await query("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS user_id TEXT");
   await query("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS no_show BOOLEAN NOT NULL DEFAULT FALSE");
   await query("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS cancelled_at BIGINT");
+  await query("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS line_reminded_end_at BIGINT");
   await query("CREATE INDEX IF NOT EXISTS idx_bookings_room_time ON bookings (room_id, start_at, end_at)");
   await query("CREATE INDEX IF NOT EXISTS idx_bookings_token ON bookings (token)");
   await query("CREATE INDEX IF NOT EXISTS idx_bookings_user_active ON bookings (user_id, status)");

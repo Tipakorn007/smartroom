@@ -26,6 +26,7 @@ test("admin login protects demo and database routes", async () => {
       expect((await request("/api/admin/rooms")).status).toBe(401);
       expect((await request("/api/stats")).status).toBe(401);
       expect((await request("/api/admin/rooms/1", "PATCH", undefined, { enabled: false })).status).toBe(401);
+      expect((await request("/api/admin/rooms/1/delete", "POST")).status).toBe(401);
       expect((await request("/api/admin/login", "POST", undefined, { password: "wrong" })).status).toBe(401);
       expect((await request("/api/admin/login", "POST", undefined, { password: "test-password" }, "https://other.test")).status).toBe(403);
 
@@ -42,6 +43,21 @@ test("admin login protects demo and database routes", async () => {
         expect((await request("/api/admin/rooms", "GET", cookie)).status).toBe(200);
         expect((await request("/api/stats", "GET", cookie)).status).toBe(200);
         expect((await request("/api/admin/rooms/1", "PATCH", cookie, {}, "https://other.test")).status).toBe(403);
+        expect((await request("/api/admin/rooms/1/delete", "POST", cookie, undefined, "https://other.test")).status).toBe(403);
+        const newRoom = await request("/api/admin/rooms", "POST", cookie, {
+          name: "Delete test", floor: 1, capacity: 4, hasPower: true, hasWhiteboard: false, quietLevel: "normal",
+        });
+        expect(newRoom.status).toBe(201);
+        const { id: roomId } = await newRoom.json() as { id: number };
+        const maintenance = await request(`/api/admin/rooms/${roomId}/maintenance`, "POST", cookie, {
+          startsAt: Date.now() + 60_000, endsAt: Date.now() + 120_000, reason: "Test",
+        });
+        expect(maintenance.status).toBe(201);
+        const { id: maintenanceId } = await maintenance.json() as { id: number };
+        expect((await request(`/api/admin/rooms/${roomId}/delete`, "POST", cookie)).status).toBe(409);
+        expect((await request(`/api/admin/rooms/${roomId}/maintenance/${maintenanceId}`, "DELETE", cookie)).status).toBe(200);
+        expect((await request(`/api/admin/rooms/${roomId}/delete`, "POST", cookie)).status).toBe(200);
+        expect((await request(`/api/admin/rooms/${roomId}/delete`, "POST", cookie)).status).toBe(404);
         const invalidUpdate = await request("/api/admin/rooms/1", "PATCH", cookie, {
           enabled: false,
           name: "A102",

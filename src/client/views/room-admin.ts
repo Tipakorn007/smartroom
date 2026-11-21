@@ -16,6 +16,7 @@ export function renderRoomAdminView(
   rooms: ManagedRoom[],
   onSave: (roomId: number | null, payload: RoomForm) => void,
   onToggle: (roomId: number, enabled: boolean) => void,
+  onDelete: (roomId: number, name: string) => Promise<void>,
   onMaintenance: (roomId: number, startsAt: number, endsAt: number, reason: string) => void,
   onRemoveMaintenance: (roomId: number, maintenanceId: number) => void,
 ): void {
@@ -64,7 +65,13 @@ export function renderRoomAdminView(
     const edit = createRoomForm((_, payload) => onSave(room.id, payload), room);
     const toggle = el("button", { class: room.enabled ? "button ghost" : "button primary", type: "button", text: room.enabled ? "ปิดใช้งานห้อง" : "เปิดใช้งานห้อง" });
     toggle.addEventListener("click", () => onToggle(room.id, !room.enabled));
-    const controls = el("div", { class: "admin-room-controls" }, [edit, toggle]);
+    const remove = el("button", { class: "button ghost", type: "button", text: "ลบห้อง" });
+    remove.addEventListener("click", async () => {
+      remove.disabled = true;
+      try { await onDelete(room.id, room.name); }
+      finally { remove.disabled = false; }
+    });
+    const controls = el("div", { class: "admin-room-controls" }, [edit, toggle, remove]);
     details.append(controls, buildMaintenance(room, onMaintenance, onRemoveMaintenance));
     list.append(details);
     roomDetails.push({ element: details, room });

@@ -3,6 +3,7 @@
  */
 
 import QRCode from "qrcode";
+import { pushToDemoUser } from "../../lib/line.ts";
 import type {
   CreateBookingResponse,
   QuietLevel,
@@ -62,6 +63,14 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
   if (pathname === "/api/admin/logout" && method === "POST") {
     assertSameOrigin(request);
     return logoutAdmin();
+  }
+  if (pathname === "/api/admin/line-test" && method === "POST") {
+    requireAdmin(request);
+    assertSameOrigin(request);
+    if (!await pushToDemoUser("SmartRoom ทดสอบการแจ้งเตือน ✅")) {
+      throw new HttpError(502, "ส่งข้อความทดสอบไป LINE ไม่สำเร็จ");
+    }
+    return json({ sent: true });
   }
   if (pathname.startsWith("/api/admin/rooms")) {
     requireAdmin(request);

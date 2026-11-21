@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import QRCode from "qrcode";
+import { pushToDemoUser } from "../../lib/line.ts";
 import {
   CHECKIN_WINDOW_MS,
   PRESENCE_EXTENSION_MS,
@@ -44,6 +45,7 @@ const ACTIVE_BOOKING_LIMIT = 1;
 
 interface DemoBooking extends Booking {
   userId: string | null;
+  lineRemindedEndAt?: number;
 }
 
 interface DemoWaitlist extends WaitlistEntry {
@@ -162,6 +164,19 @@ function releaseExpiredBookings(now: number): void {
     }
   }
   for (const roomId of expiredRoomIds) offerNextWaitlist(roomId, now);
+  if (process.env.LINE_CHANNEL_ACCESS_TOKEN && process.env.LINE_DEMO_USER_ID) {
+    for (const booking of bookings) {
+      if (booking.status !== "active" || booking.endAt <= now ||
+          booking.endAt > now + PRESENCE_REMINDER_WINDOW_MS || booking.lineRemindedEndAt === booking.endAt) continue;
+      const room = DEMO_ROOMS.find((item) => item.id === booking.roomId);
+      if (!room) continue;
+      const endAt = booking.endAt;
+      booking.lineRemindedEndAt = endAt;
+      void pushToDemoUser(`ห้อง ${room.name} จะหมดเวลาอีก 10 นาที ยังใช้อยู่ไหม?`).then((sent) => {
+        if (!sent && booking.lineRemindedEndAt === endAt) delete booking.lineRemindedEndAt;
+      });
+    }
+  }
 }
 
 function listRoomViews(now: number): RoomView[] {
@@ -285,6 +300,8 @@ function offerNextWaitlist(roomId: number, now: number): void {
   next.status = "offered";
   next.bookingId = booking.id;
   next.offerExpiresAt = now + WAITLIST_OFFER_WINDOW_MS;
+  const room = DEMO_ROOMS.find((item) => item.id === roomId);
+  if (room) void pushToDemoUser(`ห้อง ${room.name} ว่างแล้ว! ตอบรับภายใน 5 นาที`);
 }
 
 function getUserWaitlists(userId: string): WaitlistEntry[] {
@@ -423,6 +440,14 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
     assertSameOrigin(request);
     return logoutAdmin();
   }
+  if (pathname === "/api/admin/line-test" && method === "POST") {
+    requireAdmin(request);
+    assertSameOrigin(request);
+    if (!await pushToDemoUser("SmartRoom ทดสอบการแจ้งเตือน ✅")) {
+      throw new HttpError(502, "ส่งข้อความทดสอบไป LINE ไม่สำเร็จ");
+    }
+    return json({ sent: true });
+  }
   if (pathname.startsWith("/api/admin/rooms")) {
     requireAdmin(request);
     if (method !== "GET") assertSameOrigin(request);
@@ -510,6 +535,21 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
     };
     DEMO_ROOMS.push(room);
     return json({ ...room, enabled: true, maintenance: [] }, 201);
+  }
+
+  const deleteRoomMatch = pathname.match(/^\/api\/admin\/rooms\/(\d+)\/delete$/);
+  if (deleteRoomMatch && method === "POST") {
+    const roomId = validateRoomId(deleteRoomMatch[1]);
+    const index = DEMO_ROOMS.findIndex((room) => room.id === roomId);
+    if (index < 0) throw new HttpError(404, "ไม่พบห้องนี้");
+    if (bookings.some((booking) => booking.roomId === roomId) ||
+        waitlists.some((entry) => entry.roomId === roomId) ||
+        roomMaintenance.some((item) => item.roomId === roomId)) {
+      throw new HttpError(409, "ห้องนี้มีประวัติ คิว หรือช่วงปิดปรับปรุง ให้ปิดใช้งานแทนการลบ");
+    }
+    DEMO_ROOMS.splice(index, 1);
+    disabledRoomIds.delete(roomId);
+    return json({ deleted: true });
   }
 
   const adminRoomMatch = pathname.match(/^\/api\/admin\/rooms\/(\d+)(?:\/(maintenance))?$/);

@@ -81,6 +81,10 @@ export const api = {
     return request("/api/admin/logout", { method: "POST" });
   },
 
+  adminLineTest(): Promise<{ sent: true }> {
+    return request("/api/admin/line-test", { method: "POST" });
+  },
+
   /** ห้อง คิว และการจองของอุปกรณ์นี้ */
   live(userId: string): Promise<LiveSnapshot> {
     return request<LiveSnapshot>(`/api/live?userId=${encodeURIComponent(userId)}`);
@@ -115,6 +119,10 @@ export const api = {
 
   updateRoom(roomId: number, payload: Record<string, unknown>): Promise<unknown> {
     return request(`/api/admin/rooms/${roomId}`, { method: "PATCH", body: JSON.stringify(payload) });
+  },
+
+  deleteRoom(roomId: number): Promise<{ deleted: true }> {
+    return request(`/api/admin/rooms/${roomId}/delete`, { method: "POST" });
   },
 
   addMaintenance(roomId: number, payload: { startsAt: number; endsAt: number; reason: string }):

@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { pushToDemoUser } from "../../lib/line.ts";
 import { WAITLIST_OFFER_WINDOW_MS } from "../shared/constants.ts";
 import type {
   Booking,
@@ -295,7 +296,7 @@ export async function offerNextWaitlist(roomId: number, now: number): Promise<vo
       const candidates = await query<{ user_id: string }>(candidateQuery, [...policyParams, null, attemptedUsers]);
       if (!candidates[0]) return;
       const userId = candidates[0].user_id;
-      const offered = await queryForRoomAndUser(
+      const offered = await queryForRoomAndUser<{ room_name: string }>(
         roomId,
         userId,
         `WITH candidate AS MATERIALIZED (${candidateQuery}),
@@ -314,10 +315,13 @@ export async function offerNextWaitlist(roomId: number, now: number): Promise<vo
              booking_id = b.id
          FROM offered_booking b
          WHERE w.id = (SELECT id FROM candidate) AND w.status = 'waiting'
-         RETURNING w.id,w.user_id`,
+         RETURNING (SELECT name FROM rooms WHERE id = w.room_id) AS room_name`,
         [...policyParams, userId, attemptedUsers, token, WAITLIST_OFFER_WINDOW_MS],
       );
-      if (offered.length) return;
+      if (offered[0]) {
+        await pushToDemoUser(`ห้อง ${offered[0].room_name} ว่างแล้ว! ตอบรับภายใน 5 นาที`);
+        return;
+      }
       attemptedUsers.push(userId);
     }
   } catch (error) {
