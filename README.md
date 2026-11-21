@@ -37,7 +37,7 @@
 
 Schema จะถูกสร้างหรือปรับปรุงเมื่อมีการเรียก API ครั้งแรก รวมถึงตารางคิวรอห้อง โดยไม่มีการเติมห้องหรือประวัติตัวอย่างอัตโนมัติ หากฐานข้อมูลยังไม่มีห้อง ให้เพิ่มห้องผ่านระบบจัดการ
 
-การทดสอบ PostgreSQL ใน `tests/waitlist-postgres.test.ts` ปิดไว้ตามค่าเริ่มต้น หากต้องการรัน ให้ใช้ Neon branch สำหรับทดสอบที่ทิ้งได้เท่านั้น ตั้ง `DATABASE_URL` ให้ชี้ branch นั้น แล้วตั้ง `SMARTROOM_TEST_POSTGRES=true` และ `SMARTROOM_TEST_NEON_BRANCH_ID` เป็น branch ID ที่ตรงกันก่อนรัน `bun test --env-file=.env.local` โดยการทดสอบอาจปรับ schema ห้ามใช้ฐานข้อมูล production
+การทดสอบ PostgreSQL ปิดไว้ตามค่าเริ่มต้น หากต้องการรัน ให้ใช้ Neon branch สำหรับทดสอบที่ทิ้งได้เท่านั้น ตั้ง `DATABASE_URL` ให้ชี้ branch นั้น แล้วตั้ง `SMARTROOM_TEST_POSTGRES=true` และ `SMARTROOM_TEST_NEON_BRANCH_ID` เป็น branch ID ที่ตรงกันก่อนรัน `bun test --env-file=.env.local` โดยการทดสอบอาจปรับ schema และสร้างห้องกับรายการทดสอบชั่วคราว ห้ามใช้ฐานข้อมูล production
 
 ## Deploy ด้วย GitHub และ Vercel
 

@@ -30,7 +30,10 @@ export async function getMyHistory(userId: string): Promise<MyHistorySnapshot> {
       r.capacity AS room_capacity, r.has_power AS room_has_power,
       r.has_whiteboard AS room_has_whiteboard, r.quiet_level AS room_quiet_level
       FROM bookings b JOIN rooms r ON r.id=b.room_id
-      WHERE b.user_id=$1 ORDER BY b.created_at DESC`, [userId]),
+      WHERE b.user_id=$1 AND NOT EXISTS (
+        SELECT 1 FROM waitlist w WHERE w.booking_id=b.id AND w.status <> 'accepted'
+      )
+      ORDER BY b.created_at DESC`, [userId]),
     query<HistoryWaitlistRow>(`SELECT w.id,w.room_id,r.name AS room_name,w.slot,w.status,w.created_at,w.offer_expires_at
       FROM waitlist w JOIN rooms r ON r.id=w.room_id
       WHERE w.user_id=$1 ORDER BY w.created_at DESC,w.id DESC`, [userId]),

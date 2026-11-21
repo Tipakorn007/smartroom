@@ -46,21 +46,18 @@ export async function updateManagedRoom(roomId: number, input: Partial<{
 }>): Promise<void> {
   await ensureDatabase();
   const now = Date.now();
-  const existing = await query<RoomRow>("SELECT * FROM rooms WHERE id=$1", [roomId]);
+  const existing = await query("SELECT id FROM rooms WHERE id=$1", [roomId]);
   if (!existing[0]) throw new HttpError(404, "ไม่พบห้องนี้");
-  const current = toRoom(existing[0]);
-  const enabled = input.enabled ?? existing[0].enabled !== false;
-  if (!enabled) {
-    const active = await query("SELECT id FROM bookings WHERE room_id = $1 AND status IN ('pending','active') AND end_at > $2 LIMIT 1", [roomId, now]);
-    if (active.length) throw new HttpError(409, "ยังมีการจองในห้องนี้ จึงปิดใช้งานไม่ได้");
-  }
-  const rows = await queryForRoom<RoomRow>(roomId, `UPDATE rooms SET name=$2, floor=$3, capacity=$4, has_power=$5,
-      has_whiteboard=$6, quiet_level=$7, enabled=$8 WHERE id=$1
-      AND ($8=TRUE OR NOT EXISTS (SELECT 1 FROM bookings WHERE room_id=$1 AND status IN ('pending','active') AND end_at>$9))
+  const rows = await queryForRoom<RoomRow>(roomId, `UPDATE rooms SET
+      name=COALESCE($2::text, name), floor=COALESCE($3::integer, floor),
+      capacity=COALESCE($4::integer, capacity), has_power=COALESCE($5::boolean, has_power),
+      has_whiteboard=COALESCE($6::boolean, has_whiteboard), quiet_level=COALESCE($7::text, quiet_level),
+      enabled=COALESCE($8::boolean, enabled) WHERE id=$1
+      AND (COALESCE($8::boolean, enabled) OR NOT EXISTS
+        (SELECT 1 FROM bookings WHERE room_id=$1 AND status IN ('pending','active') AND end_at>$9))
       RETURNING *`,
-  [roomId, input.name ?? current.name, input.floor ?? current.floor, input.capacity ?? current.capacity,
-   input.hasPower ?? current.hasPower, input.hasWhiteboard ?? current.hasWhiteboard,
-   input.quietLevel ?? current.quietLevel, enabled, now]);
+  [roomId, input.name ?? null, input.floor ?? null, input.capacity ?? null,
+   input.hasPower ?? null, input.hasWhiteboard ?? null, input.quietLevel ?? null, input.enabled ?? null, now]);
   if (!rows[0]) throw new HttpError(409, "ยังมีการจองในห้องนี้ จึงปิดใช้งานไม่ได้");
 }
 

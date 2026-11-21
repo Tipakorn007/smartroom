@@ -184,6 +184,17 @@ export async function acceptWaitlistOffer(
            SELECT 1 FROM bookings other WHERE other.user_id=$2
              AND other.status IN ('pending','active') AND other.id<>b.id
          )
+         AND NOT EXISTS (
+           SELECT 1 FROM bookings other
+           WHERE other.room_id = b.room_id AND other.id <> b.id
+             AND other.status IN ('pending', 'active')
+             AND other.start_at < $3 + w.slot * 60000 AND other.end_at > $3
+         )
+         AND NOT EXISTS (
+           SELECT 1 FROM room_maintenance m
+           WHERE m.room_id = b.room_id
+             AND m.starts_at < $3 + w.slot * 60000 AND m.ends_at > $3
+         )
        RETURNING b.*
      ),
      accepted AS (
@@ -241,63 +252,74 @@ export async function cancelWaitlist(waitlistId: number, userId: string): Promis
 export async function offerNextWaitlist(roomId: number, now: number): Promise<void> {
   await ensureDatabase();
   const token = randomBytes(16).toString("hex");
+  const candidateQuery = `
+    SELECT w.id, w.room_id, w.user_id, w.user_name, w.slot
+    FROM waitlist w
+    WHERE w.room_id = $1 AND w.status = 'waiting'
+      AND ($6::text IS NULL OR w.user_id = $6)
+      AND NOT (w.user_id = ANY($7::text[]))
+      AND NOT EXISTS (
+        SELECT 1 FROM bookings existing
+        WHERE existing.user_id=w.user_id AND existing.status IN ('pending','active')
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM bookings strike
+        WHERE strike.user_id=w.user_id AND strike.no_show=TRUE
+          AND strike.released_at > $2::bigint - $3::bigint
+        GROUP BY strike.user_id
+        HAVING COUNT(*) >= $5 AND MAX(strike.released_at) + $4::bigint > $2
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM bookings b
+        WHERE b.room_id = $1 AND b.status IN ('pending', 'active') AND b.end_at > $2
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM rooms r WHERE r.id=$1 AND r.enabled=FALSE
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM room_maintenance m
+        WHERE m.room_id=$1 AND m.starts_at < $2 + w.slot * 60000 AND m.ends_at > $2
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM waitlist offered
+        WHERE offered.room_id = $1 AND offered.status = 'offered'
+          AND offered.offer_expires_at > $2
+      )
+    ORDER BY w.created_at ASC, w.id ASC
+    LIMIT 1
+    FOR UPDATE SKIP LOCKED`;
+  const policyParams = [roomId, now, NO_SHOW_WINDOW_MS, NO_SHOW_COOLDOWN_MS, NO_SHOW_THRESHOLD];
   try {
-    await queryForRoom(
-      roomId,
-      `WITH candidate AS MATERIALIZED (
-         SELECT w.id, w.room_id, w.user_id, w.user_name, w.slot
-         FROM waitlist w
-         WHERE w.room_id = $1 AND w.status = 'waiting'
-           AND NOT EXISTS (
-             SELECT 1 FROM bookings existing
-             WHERE existing.user_id=w.user_id AND existing.status IN ('pending','active')
-           )
-           AND NOT EXISTS (
-             SELECT 1 FROM bookings strike
-             WHERE strike.user_id=w.user_id AND strike.no_show=TRUE
-               AND strike.released_at > $2::bigint - $5::bigint
-             GROUP BY strike.user_id
-             HAVING COUNT(*) >= $7 AND MAX(strike.released_at) + $6::bigint > $2
-           )
-           AND NOT EXISTS (
-             SELECT 1 FROM bookings b
-           WHERE b.room_id = $1 AND b.status IN ('pending', 'active')
-             AND b.end_at > $2
-           )
-           AND NOT EXISTS (
-             SELECT 1 FROM rooms r WHERE r.id=$1 AND r.enabled=FALSE
-           )
-           AND NOT EXISTS (
-             SELECT 1 FROM room_maintenance m
-             WHERE m.room_id=$1 AND m.starts_at < $2 + w.slot * 60000 AND m.ends_at > $2
-           )
-           AND NOT EXISTS (
-             SELECT 1 FROM waitlist offered
-             WHERE offered.room_id = $1 AND offered.status = 'offered'
-               AND offered.offer_expires_at > $2
-           )
-         ORDER BY w.created_at ASC, w.id ASC
-         LIMIT 1
-         FOR UPDATE SKIP LOCKED
-       ),
-       offered_booking AS (
-         INSERT INTO bookings
-           (room_id, user_id, user_name, start_at, end_at, status, token,
-            created_at, checked_in_at, released_at)
-         SELECT room_id, user_id, user_name, $2, $2 + slot * 60000, 'pending',
-                $3, $2, NULL, NULL
-         FROM candidate
-         RETURNING id, room_id
-       )
-       UPDATE waitlist w
-       SET status = 'offered',
-           offer_expires_at = $2 + $4,
-           booking_id = b.id
-       FROM offered_booking b
-       WHERE w.id = (SELECT id FROM candidate) AND w.status = 'waiting'
-       RETURNING w.id,w.user_id`,
-      [roomId, now, token, WAITLIST_OFFER_WINDOW_MS, NO_SHOW_WINDOW_MS, NO_SHOW_COOLDOWN_MS, NO_SHOW_THRESHOLD],
-    );
+    const attemptedUsers: string[] = [];
+    while (true) {
+      const candidates = await query<{ user_id: string }>(candidateQuery, [...policyParams, null, attemptedUsers]);
+      if (!candidates[0]) return;
+      const userId = candidates[0].user_id;
+      const offered = await queryForRoomAndUser(
+        roomId,
+        userId,
+        `WITH candidate AS MATERIALIZED (${candidateQuery}),
+         offered_booking AS (
+           INSERT INTO bookings
+             (room_id, user_id, user_name, start_at, end_at, status, token,
+              created_at, checked_in_at, released_at)
+           SELECT room_id, user_id, user_name, $2, $2 + slot * 60000, 'pending',
+                  $8, $2, NULL, NULL
+           FROM candidate
+           RETURNING id, room_id
+         )
+         UPDATE waitlist w
+         SET status = 'offered',
+             offer_expires_at = $2 + $9,
+             booking_id = b.id
+         FROM offered_booking b
+         WHERE w.id = (SELECT id FROM candidate) AND w.status = 'waiting'
+         RETURNING w.id,w.user_id`,
+        [...policyParams, userId, attemptedUsers, token, WAITLIST_OFFER_WINDOW_MS],
+      );
+      if (offered.length) return;
+      attemptedUsers.push(userId);
+    }
   } catch (error) {
     if (isDatabaseError(error, "23P01")) {
       console.warn(`[waitlist] ห้อง ${roomId} ถูกจองระหว่างกำลังส่งข้อเสนอ จะลองใหม่รอบถัดไป`);

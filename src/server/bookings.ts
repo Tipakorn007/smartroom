@@ -148,22 +148,31 @@ export async function checkIn(
   }
 
   const now = Date.now();
+  if (now < booking.startAt) {
+    throw new HttpError(409, "ยังไม่ถึงเวลาเริ่มจอง จึงยังเช็กอินไม่ได้");
+  }
   if (now >= booking.startAt + CHECKIN_WINDOW_MS) {
     const released = await query(
-      `UPDATE bookings SET status = 'released', released_at = $1
-       WHERE id = $2 AND status = 'pending'
+      `UPDATE bookings b SET status = 'released', released_at = $1,
+         no_show = CASE WHEN b.user_id IS NOT NULL AND NOT EXISTS (
+           SELECT 1 FROM waitlist w WHERE w.booking_id = b.id AND w.status <> 'accepted'
+         ) THEN TRUE ELSE b.no_show END
+       WHERE b.id = $2 AND b.status = 'pending' AND b.start_at + $3 <= $1
        RETURNING id`,
-      [now, booking.id],
+      [now, booking.id, CHECKIN_WINDOW_MS],
     );
-    if (released.length > 0) await offerNextWaitlist(booking.roomId, now);
-    throw new HttpError(409, "เลยเวลาเช็กอิน 15 นาทีแล้ว ห้องนี้ถูกปล่อยคืน");
+    if (released.length > 0) {
+      await offerNextWaitlist(booking.roomId, now);
+      throw new HttpError(409, "เลยเวลาเช็กอิน 15 นาทีแล้ว ห้องนี้ถูกปล่อยคืน");
+    }
   }
 
   const rows = await query<BookingRow>(
     `UPDATE bookings SET status = 'active', checked_in_at = $1
      WHERE id = $2 AND status = 'pending'
+       AND start_at <= $1 AND start_at + $3 > $1
      RETURNING *`,
-    [now, booking.id],
+    [now, booking.id, CHECKIN_WINDOW_MS],
   );
   if (rows[0]) return { booking: toBooking(rows[0]), room, alreadyCheckedIn: false };
 
@@ -171,6 +180,9 @@ export async function checkIn(
   if (latest?.status === "active") return { booking: latest, room, alreadyCheckedIn: true };
   if (latest?.status === "released") {
     throw new HttpError(409, "การจองนี้ถูกปล่อยคืนแล้ว เพราะไม่ได้เช็กอินภายใน 15 นาที");
+  }
+  if (latest?.status === "pending" && now < latest.startAt) {
+    throw new HttpError(409, "ยังไม่ถึงเวลาเริ่มจอง จึงยังเช็กอินไม่ได้");
   }
   throw new HttpError(409, "ไม่สามารถเช็กอินการจองนี้ได้");
 }
@@ -183,8 +195,10 @@ export async function cancelPendingBooking(token: string): Promise<Booking> {
   if (!booking) throw new HttpError(404, "ไม่พบการจองนี้");
   if (booking.status !== "pending") throw new HttpError(409, "ยกเลิกได้เฉพาะรายการที่ยังไม่เช็กอิน");
   const rows = await queryForRoom<BookingRow>(booking.roomId, `
-    UPDATE bookings SET status='released', released_at=$2, cancelled_at=$2
-    WHERE id=$1 AND status='pending' RETURNING *
+    UPDATE bookings b SET status='released', released_at=$2, cancelled_at=$2
+    WHERE b.id=$1 AND b.status='pending'
+      AND NOT EXISTS (SELECT 1 FROM waitlist w WHERE w.booking_id=b.id AND w.status='offered')
+    RETURNING b.*
   `, [booking.id, now]);
   if (!rows[0]) throw new HttpError(409, "สถานะการจองเปลี่ยนไปแล้ว");
   await offerNextWaitlist(booking.roomId, now);
@@ -212,6 +226,7 @@ export async function editPendingBooking(token: string, input: {
     const rows = await queryForRoom<BookingRow>(input.roomId, `
       UPDATE bookings b SET room_id=$2, start_at=$3, end_at=$4
       WHERE b.id=$1 AND b.status='pending'
+        AND NOT EXISTS (SELECT 1 FROM waitlist w WHERE w.booking_id=b.id AND w.status='offered')
         AND NOT EXISTS (SELECT 1 FROM waitlist w WHERE w.room_id=$2 AND w.status IN ('waiting','offered'))
         AND EXISTS (SELECT 1 FROM rooms r WHERE r.id=$2 AND r.enabled=TRUE)
         AND NOT EXISTS (SELECT 1 FROM room_maintenance m WHERE m.room_id=$2 AND m.starts_at<$4 AND m.ends_at>$3)
@@ -282,6 +297,11 @@ export async function extendBooking(
            SELECT 1 FROM waitlist w
            WHERE w.room_id = b.room_id AND w.status IN ('waiting', 'offered')
          )
+         AND NOT EXISTS (
+           SELECT 1 FROM room_maintenance m
+           WHERE m.room_id = b.room_id
+             AND m.starts_at < b.end_at + $4 AND m.ends_at > b.end_at
+         )
        RETURNING b.*`,
       [booking.id, token, expectedEndAt, PRESENCE_EXTENSION_MS, now],
     );
@@ -294,6 +314,12 @@ export async function extendBooking(
       [booking.roomId],
     );
     if (queued[0]) throw new HttpError(409, "มีคนรอคิวห้องนี้อยู่ จึงต่อเวลาไม่ได้");
+    const maintenance = await query(
+      `SELECT id FROM room_maintenance
+       WHERE room_id = $1 AND starts_at < $2 AND ends_at > $3 LIMIT 1`,
+      [booking.roomId, expectedEndAt + PRESENCE_EXTENSION_MS, expectedEndAt],
+    );
+    if (maintenance[0]) throw new HttpError(409, "ห้องปิดปรับปรุงในช่วงเวลาที่ต้องการต่อ");
     throw new HttpError(409, "ต่อเวลาไม่สำเร็จ สถานะการจองอาจเปลี่ยนไปแล้ว");
   } catch (error) {
     if (error instanceof HttpError) throw error;

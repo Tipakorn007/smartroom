@@ -227,7 +227,9 @@ function buildRoomStatus(room: RoomView, entry: WaitlistEntry | undefined): HTML
       class: "room-status-detail",
       text: room.nextBookingAt
         ? `ว่างถึง ${formatClock(room.nextBookingAt)} น. · คิวจะได้รับข้อเสนอหลังการจองถัดไป`
-        : "จองได้เลยตอนนี้",
+        : room.waitlistCount > 0
+          ? "มีผู้ใช้รอคิวอยู่"
+          : "จองได้เลยตอนนี้",
     }));
   } else if (room.status === "offered") {
     statusContent.push(
