@@ -23,3 +23,11 @@ export async function pushToDemoUser(text: string): Promise<boolean> {
     return false;
   }
 }
+
+export function checkinStartMessage(roomName: string): string {
+  return `ถึงเวลาจองห้อง ${roomName} แล้ว! เช็กอินภายใน 15 นาที ไม่งั้นห้องจะถูกปล่อย`;
+}
+
+export function checkinWarningMessage(roomName: string): string {
+  return `อีก 5 นาทีห้อง ${roomName} จะถูกปล่อย กดเช็กอินตอนนี้เลย`;
+}

@@ -83,8 +83,22 @@ if (root) {
           lineTest.disabled = false;
         }
       });
+      const checkinTests = el("div", { class: "admin-line-tests" });
+      for (const [kind, label] of [
+        ["checkin-start", "ทดสอบ LINE เริ่มเช็กอิน"],
+        ["checkin-warning", "ทดสอบ LINE เตือนก่อนปล่อยห้อง"],
+      ] as const) {
+        const button = el("button", { class: "button ghost", type: "button", text: label });
+        button.addEventListener("click", async () => {
+          button.disabled = true;
+          try { await api.adminLineTest(kind); showToast("ส่งข้อความทดสอบไป LINE สำเร็จ"); }
+          catch (error) { showToast(error instanceof Error ? error.message : "ส่งข้อความทดสอบไป LINE ไม่สำเร็จ", "warn"); }
+          finally { button.disabled = false; }
+        });
+        checkinTests.append(button);
+      }
       accountActions.replaceChildren(lineTest, logout);
-      content.replaceChildren(sectionNav, sectionContent);
+      content.replaceChildren(sectionNav, checkinTests, sectionContent);
       await loadRooms();
     } catch (error) {
       showLogin(error instanceof Error ? error.message : "เชื่อมต่อระบบจัดการไม่ได้");

@@ -81,8 +81,8 @@ export const api = {
     return request("/api/admin/logout", { method: "POST" });
   },
 
-  adminLineTest(): Promise<{ sent: true }> {
-    return request("/api/admin/line-test", { method: "POST" });
+  adminLineTest(kind?: "checkin-start" | "checkin-warning"): Promise<{ sent: true }> {
+    return request(`/api/admin/line-test${kind ? `/${kind}` : ""}`, { method: "POST" });
   },
 
   /** ห้อง คิว และการจองของอุปกรณ์นี้ */

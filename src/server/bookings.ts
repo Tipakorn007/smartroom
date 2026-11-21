@@ -22,7 +22,7 @@ import {
 import { HttpError } from "./http.ts";
 import { assertUserCanBook } from "./booking-policy.ts";
 import { getRoomById } from "./rooms.ts";
-import { sendLineReminders } from "./line-reminders.ts";
+import { sendLineCheckinReminders, sendLineReminders } from "./line-reminders.ts";
 import { expireWaitlistOffers, offerNextWaitlist } from "./waitlist.ts";
 
 interface CreateBookingInput {
@@ -361,6 +361,7 @@ export async function releaseExpiredBookings(
      await offerNextWaitlist(roomId, now);
   }
   await sendLineReminders(now);
+  await sendLineCheckinReminders(now);
   return rows.filter((row) => row.status === "released").map((row) => ({
     booking: { ...toBooking(row), status: "released", releasedAt: now },
     roomName: row.room_name,

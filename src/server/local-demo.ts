@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import QRCode from "qrcode";
-import { pushToDemoUser } from "../../lib/line.ts";
+import { checkinStartMessage, checkinWarningMessage, pushToDemoUser } from "../../lib/line.ts";
 import {
   CHECKIN_WINDOW_MS,
   PRESENCE_EXTENSION_MS,
@@ -25,6 +25,7 @@ import type {
 import { HttpError, json, readJsonBody, sse } from "./http.ts";
 import { adminSessionValid, assertSameOrigin, loginAdmin, logoutAdmin, requireAdmin } from "./admin-auth.ts";
 import { rankRooms } from "./recommend.ts";
+import { handleLineTest } from "./line-test.ts";
 import {
   validateDuration,
   validateFlag,
@@ -46,6 +47,8 @@ const ACTIVE_BOOKING_LIMIT = 1;
 interface DemoBooking extends Booking {
   userId: string | null;
   lineRemindedEndAt?: number;
+  notifiedStart?: boolean;
+  notifiedReleaseWarning?: boolean;
 }
 
 interface DemoWaitlist extends WaitlistEntry {
@@ -166,6 +169,19 @@ function releaseExpiredBookings(now: number): void {
   for (const roomId of expiredRoomIds) offerNextWaitlist(roomId, now);
   if (process.env.LINE_CHANNEL_ACCESS_TOKEN && process.env.LINE_DEMO_USER_ID) {
     for (const booking of bookings) {
+      if (booking.status === "pending" && booking.startAt <= now &&
+          now < booking.startAt + CHECKIN_WINDOW_MS &&
+          !waitlists.some((entry) => entry.bookingId === booking.id && entry.status !== "accepted")) {
+        const room = DEMO_ROOMS.find((item) => item.id === booking.roomId);
+        if (room && !booking.notifiedStart) {
+          booking.notifiedStart = true;
+          void pushToDemoUser(checkinStartMessage(room.name));
+        }
+        if (room && !booking.notifiedReleaseWarning && now >= booking.startAt + CHECKIN_WINDOW_MS - 5 * MINUTE) {
+          booking.notifiedReleaseWarning = true;
+          void pushToDemoUser(checkinWarningMessage(room.name));
+        }
+      }
       if (booking.status !== "active" || booking.endAt <= now ||
           booking.endAt > now + PRESENCE_REMINDER_WINDOW_MS || booking.lineRemindedEndAt === booking.endAt) continue;
       const room = DEMO_ROOMS.find((item) => item.id === booking.roomId);
@@ -440,13 +456,8 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
     assertSameOrigin(request);
     return logoutAdmin();
   }
-  if (pathname === "/api/admin/line-test" && method === "POST") {
-    requireAdmin(request);
-    assertSameOrigin(request);
-    if (!await pushToDemoUser("SmartRoom ทดสอบการแจ้งเตือน ✅")) {
-      throw new HttpError(502, "ส่งข้อความทดสอบไป LINE ไม่สำเร็จ");
-    }
-    return json({ sent: true });
+  if ((pathname === "/api/admin/line-test" || pathname.startsWith("/api/admin/line-test/")) && method === "POST") {
+    return handleLineTest(request, pathname);
   }
   if (pathname.startsWith("/api/admin/rooms")) {
     requireAdmin(request);

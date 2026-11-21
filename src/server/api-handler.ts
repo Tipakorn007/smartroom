@@ -3,7 +3,6 @@
  */
 
 import QRCode from "qrcode";
-import { pushToDemoUser } from "../../lib/line.ts";
 import type {
   CreateBookingResponse,
   QuietLevel,
@@ -24,6 +23,7 @@ import { HttpError, json, readJsonBody, sse } from "./http.ts";
 import { assertSameOrigin, adminSessionValid, loginAdmin, logoutAdmin, requireAdmin } from "./admin-auth.ts";
 import { addRoomMaintenance, createManagedRoom, listManagedRooms, removeRoom, removeRoomMaintenance, updateManagedRoom } from "./admin-rooms.ts";
 import { recommendRooms } from "./recommend.ts";
+import { handleLineTest } from "./line-test.ts";
 import { listRoomViews } from "./rooms.ts";
 import { getStats } from "./stats.ts";
 import { getMyHistory } from "./my-history.ts";
@@ -64,13 +64,8 @@ async function routeApi(request: Request, url: URL): Promise<Response> {
     assertSameOrigin(request);
     return logoutAdmin();
   }
-  if (pathname === "/api/admin/line-test" && method === "POST") {
-    requireAdmin(request);
-    assertSameOrigin(request);
-    if (!await pushToDemoUser("SmartRoom ทดสอบการแจ้งเตือน ✅")) {
-      throw new HttpError(502, "ส่งข้อความทดสอบไป LINE ไม่สำเร็จ");
-    }
-    return json({ sent: true });
+  if ((pathname === "/api/admin/line-test" || pathname.startsWith("/api/admin/line-test/")) && method === "POST") {
+    return handleLineTest(request, pathname);
   }
   if (pathname.startsWith("/api/admin/rooms")) {
     requireAdmin(request);
