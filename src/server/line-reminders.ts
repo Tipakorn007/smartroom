@@ -23,7 +23,7 @@ export async function sendLineCheckinReminders(now: number): Promise<void> {
        RETURNING b.id, due.room_name, due.send_start, due.send_warning`,
       [now, CHECKIN_WINDOW_MS, RELEASE_WARNING_WINDOW_MS],
     );
-    await Promise.all(bookings.map(async (booking) => {
+    const results = await Promise.allSettled(bookings.map(async (booking) => {
       const stillPending = async (): Promise<boolean> => {
         const rows = await query(
           `SELECT b.id FROM bookings b WHERE b.id = $1 AND b.status = 'pending'
@@ -35,6 +35,9 @@ export async function sendLineCheckinReminders(now: number): Promise<void> {
       if (booking.send_start && await stillPending()) await pushToDemoUser(checkinStartMessage(booking.room_name));
       if (booking.send_warning && await stillPending()) await pushToDemoUser(checkinWarningMessage(booking.room_name));
     }));
+    for (const result of results) {
+      if (result.status === "rejected") console.error("[LINE] แจ้งเตือนเช็กอินไม่สำเร็จ:", result.reason);
+    }
   } catch (error) {
     console.error("[LINE] ตรวจแจ้งเตือนเช็กอินไม่สำเร็จ:", error);
   }
@@ -52,7 +55,7 @@ export async function sendLineReminders(now: number): Promise<void> {
        RETURNING b.id, b.end_at, r.name AS room_name`,
       [now, PRESENCE_REMINDER_WINDOW_MS],
     );
-    await Promise.all(bookings.map(async (booking) => {
+    const results = await Promise.allSettled(bookings.map(async (booking) => {
       const sent = await pushToDemoUser(`ห้อง ${booking.room_name} จะหมดเวลาอีก 10 นาที ยังใช้อยู่ไหม?`);
       if (!sent) {
         await query(
@@ -61,6 +64,9 @@ export async function sendLineReminders(now: number): Promise<void> {
         );
       }
     }));
+    for (const result of results) {
+      if (result.status === "rejected") console.error("[LINE] แจ้งเตือนก่อนหมดเวลาไม่สำเร็จ:", result.reason);
+    }
   } catch (error) {
     console.error("[LINE] ตรวจแจ้งเตือนก่อนหมดเวลาไม่สำเร็จ:", error);
   }

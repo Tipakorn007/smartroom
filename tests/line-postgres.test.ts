@@ -1,6 +1,7 @@
 import { expect, spyOn, test } from "bun:test";
 import { randomBytes } from "node:crypto";
 import { neon } from "@neondatabase/serverless";
+import { handleApi } from "../src/server/api-handler.ts";
 import { ensureDatabase } from "../src/server/db.ts";
 import { sendLineCheckinReminders, sendLineReminders } from "../src/server/line-reminders.ts";
 import { offerNextWaitlist } from "../src/server/waitlist.ts";
@@ -186,6 +187,153 @@ test.skipIf(process.env.SMARTROOM_TEST_POSTGRES !== "true")(
       await sql.query("DELETE FROM rooms WHERE id=$1 AND name=$2", [roomId, roomName]);
     }
     await testCheckinReminders();
+  },
+  120_000,
+);
+
+test.skipIf(process.env.SMARTROOM_TEST_POSTGRES !== "true")(
+  "booking and check-in respond while Vercel keeps LINE work running",
+  async () => {
+    const url = process.env.DATABASE_URL;
+    const branchId = process.env.SMARTROOM_TEST_NEON_BRANCH_ID;
+    if (!url || !branchId || branchId === "br-summer-lake-bez3c4t2") {
+      throw new Error("Provide DATABASE_URL and a non-production SMARTROOM_TEST_NEON_BRANCH_ID");
+    }
+    const sql = neon(url);
+    const branch = await sql.query("SELECT current_setting('neon.branch_id', true) AS id");
+    if (branch[0]?.id !== branchId) throw new Error("DATABASE_URL does not point to the requested Neon test branch");
+    await ensureDatabase();
+
+    const firstId = 6000 + Math.floor(Math.random() * 1000);
+    const roomIds = [firstId, firstId + 1, firstId + 2, firstId + 3];
+    const roomName = `LINE background ${randomBytes(8).toString("hex")}`;
+    const created = await sql.query(
+      `INSERT INTO rooms (id, name, floor, capacity, has_power, has_whiteboard, quiet_level)
+       SELECT id, $2, 1, 4, TRUE, TRUE, 'quiet' FROM unnest($1::integer[]) AS id
+       ON CONFLICT DO NOTHING RETURNING id`,
+      [roomIds, roomName],
+    );
+    if (created.length !== roomIds.length) {
+      await sql.query("DELETE FROM rooms WHERE id = ANY($1::integer[]) AND name = $2", [roomIds, roomName]);
+      throw new Error("Test room ID already exists");
+    }
+
+    const token = process.env.LINE_CHANNEL_ACCESS_TOKEN;
+    const user = process.env.LINE_DEMO_USER_ID;
+    const originalFetch = globalThis.fetch;
+    const contextKey = Symbol.for("@vercel/request-context");
+    const originalContext = Reflect.get(globalThis, contextKey);
+    const tasks: Promise<unknown>[] = [];
+    const requests: Promise<Response>[] = [];
+    const messages: string[] = [];
+    const errors = spyOn(console, "error").mockImplementation(() => {});
+    let releaseLine!: (response: Response) => void;
+    const lineResponse = new Promise<Response>((resolve) => { releaseLine = resolve; });
+    let reportResetFailure!: () => void;
+    const resetFailure = new Promise<void>((resolve) => { reportResetFailure = resolve; });
+    let reminders = 0;
+    const withTimeout = async <T>(promise: Promise<T>): Promise<T> => {
+      let timer: ReturnType<typeof setTimeout>;
+      try {
+        return await Promise.race([
+          promise,
+          new Promise<never>((_, reject) => {
+            timer = setTimeout(() => reject(new Error("Request waited for LINE")), 15_000);
+          }),
+        ]);
+      } finally {
+        clearTimeout(timer!);
+      }
+    };
+    const waitForMessages = async (count: number): Promise<void> => {
+      const deadline = Date.now() + 15_000;
+      while (messages.length < count && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+      if (messages.length < count) throw new Error("LINE work was not started");
+    };
+    try {
+      process.env.LINE_CHANNEL_ACCESS_TOKEN = "test-token";
+      process.env.LINE_DEMO_USER_ID = "test-user";
+      Reflect.set(globalThis, contextKey, { get: () => ({ waitUntil: (promise: Promise<unknown>) => tasks.push(promise) }) });
+      globalThis.fetch = (async (input, init) => {
+        if (String(input) !== "https://api.line.me/v2/bot/message/push") {
+          if (String(init?.body).includes("UPDATE bookings SET line_reminded_end_at = NULL WHERE id = $1")) {
+            reportResetFailure();
+            throw new Error("Simulated reminder reset failure");
+          }
+          return originalFetch(input, init);
+        }
+        const body = JSON.parse(String(init?.body)) as { messages: Array<{ text: string }> };
+        const message = body.messages[0]?.text ?? "";
+        messages.push(message);
+        if (message.includes("จะหมดเวลาอีก 10 นาที") && ++reminders === 1) {
+          return new Response(null, { status: 500 });
+        }
+        return lineResponse;
+      }) as typeof fetch;
+
+      const now = Date.now();
+      await sql.query(
+        `INSERT INTO bookings (room_id, user_name, start_at, end_at, status, token, created_at)
+         VALUES ($1, 'Test', $2, $3, 'active', $4, $2),
+                ($5, 'Test', $2, $3, 'active', $6, $2)`,
+        [roomIds[1], now - 20 * 60_000, now + 5 * 60_000, randomBytes(16).toString("hex"),
+         roomIds[3], randomBytes(16).toString("hex")],
+      );
+      await sql.query(
+        `INSERT INTO waitlist (room_id, user_id, user_name, slot, created_at, status)
+         VALUES ($1, $2, 'Test', 30, $3, 'waiting')`,
+        [roomIds[2], randomBytes(16).toString("hex"), now],
+      );
+      const bookingRequest = handleApi(new Request("http://localhost/api/bookings", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ roomId: roomIds[0], userId: randomBytes(16).toString("hex"), userName: "Test", durationMinutes: 30 }),
+      }));
+      requests.push(bookingRequest);
+      const bookingResponse = await withTimeout(bookingRequest);
+      expect(bookingResponse.status).toBe(201);
+      const result = await bookingResponse.json() as { booking: { token: string } };
+      await waitForMessages(3);
+      expect(messages).toContain(`ห้อง ${roomName} ว่างแล้ว! ตอบรับภายใน 5 นาที`);
+      expect(messages).toContain(`ห้อง ${roomName} จะหมดเวลาอีก 10 นาที ยังใช้อยู่ไหม?`);
+      let remindersFinished = false;
+      void tasks[1]?.then(() => { remindersFinished = true; });
+      await withTimeout(resetFailure);
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      expect(remindersFinished).toBe(false);
+
+      await sql.query("UPDATE bookings SET line_reminded_end_at=NULL WHERE room_id=$1", [roomIds[1]]);
+      const checkinRequest = handleApi(new Request(
+        `http://localhost/api/bookings/${result.booking.token}/checkin`, { method: "POST" },
+      ));
+      requests.push(checkinRequest);
+      const checkinResponse = await withTimeout(checkinRequest);
+      expect(checkinResponse.status).toBe(200);
+      await waitForMessages(4);
+      expect(tasks.length).toBeGreaterThanOrEqual(5);
+
+      releaseLine(new Response(null, { status: 500 }));
+      await Promise.all(tasks);
+      expect(errors).toHaveBeenCalled();
+      expect(errors.mock.calls.some((args) => args[0] === "[LINE] แจ้งเตือนก่อนหมดเวลาไม่สำเร็จ:")).toBe(true);
+    } finally {
+      releaseLine(new Response(null, { status: 500 }));
+      await Promise.allSettled(requests);
+      await Promise.allSettled(tasks);
+      globalThis.fetch = originalFetch;
+      if (originalContext === undefined) Reflect.deleteProperty(globalThis, contextKey);
+      else Reflect.set(globalThis, contextKey, originalContext);
+      errors.mockRestore();
+      if (token === undefined) delete process.env.LINE_CHANNEL_ACCESS_TOKEN;
+      else process.env.LINE_CHANNEL_ACCESS_TOKEN = token;
+      if (user === undefined) delete process.env.LINE_DEMO_USER_ID;
+      else process.env.LINE_DEMO_USER_ID = user;
+      await sql.query("DELETE FROM waitlist WHERE room_id = ANY($1::integer[])", [roomIds]);
+      await sql.query("DELETE FROM bookings WHERE room_id = ANY($1::integer[])", [roomIds]);
+      await sql.query("DELETE FROM rooms WHERE id = ANY($1::integer[]) AND name = $2", [roomIds, roomName]);
+    }
   },
   120_000,
 );

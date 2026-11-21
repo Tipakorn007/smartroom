@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
+    "@vercel/functions": "^3.11.3",
     "qrcode": "^1.5.4"
   },
   "devDependencies": {

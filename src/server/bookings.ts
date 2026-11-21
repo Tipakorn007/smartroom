@@ -4,6 +4,7 @@
  */
 
 import { randomBytes } from "node:crypto";
+import { waitUntil } from "@vercel/functions";
 import {
   CHECKIN_WINDOW_MS,
   PRESENCE_EXTENSION_MS,
@@ -360,8 +361,8 @@ export async function releaseExpiredBookings(
   for (const roomId of changedRoomIds) {
      await offerNextWaitlist(roomId, now);
   }
-  await sendLineReminders(now);
-  await sendLineCheckinReminders(now);
+  waitUntil(sendLineReminders(now));
+  waitUntil(sendLineCheckinReminders(now));
   return rows.filter((row) => row.status === "released").map((row) => ({
     booking: { ...toBooking(row), status: "released", releasedAt: now },
     roomName: row.room_name,

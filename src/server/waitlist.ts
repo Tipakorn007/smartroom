@@ -1,4 +1,5 @@
 import { randomBytes } from "node:crypto";
+import { waitUntil } from "@vercel/functions";
 import { pushToDemoUser } from "../../lib/line.ts";
 import { WAITLIST_OFFER_WINDOW_MS } from "../shared/constants.ts";
 import type {
@@ -319,7 +320,7 @@ export async function offerNextWaitlist(roomId: number, now: number): Promise<vo
         [...policyParams, userId, attemptedUsers, token, WAITLIST_OFFER_WINDOW_MS],
       );
       if (offered[0]) {
-        await pushToDemoUser(`ห้อง ${offered[0].room_name} ว่างแล้ว! ตอบรับภายใน 5 นาที`);
+        waitUntil(pushToDemoUser(`ห้อง ${offered[0].room_name} ว่างแล้ว! ตอบรับภายใน 5 นาที`));
         return;
       }
       attemptedUsers.push(userId);
