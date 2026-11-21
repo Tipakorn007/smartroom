@@ -16,7 +16,12 @@ import {
   type BookingRow,
 } from "./db.ts";
 import { HttpError } from "./http.ts";
-import { assertUserCanBook } from "./booking-policy.ts";
+import {
+  assertUserCanBook,
+  NO_SHOW_COOLDOWN_MS,
+  NO_SHOW_THRESHOLD,
+  NO_SHOW_WINDOW_MS,
+} from "./booking-policy.ts";
 import { getRoomById, listRoomViews } from "./rooms.ts";
 
 interface WaitlistRow {
@@ -250,9 +255,9 @@ export async function offerNextWaitlist(roomId: number, now: number): Promise<vo
            AND NOT EXISTS (
              SELECT 1 FROM bookings strike
              WHERE strike.user_id=w.user_id AND strike.no_show=TRUE
-               AND strike.released_at > $2 - 30 * 24 * 60 * 60 * 1000
+               AND strike.released_at > $2::bigint - $5::bigint
              GROUP BY strike.user_id
-             HAVING COUNT(*) >= 3 AND MAX(strike.released_at) + 24 * 60 * 60 * 1000 > $2
+             HAVING COUNT(*) >= $7 AND MAX(strike.released_at) + $6::bigint > $2
            )
            AND NOT EXISTS (
              SELECT 1 FROM bookings b
@@ -291,7 +296,7 @@ export async function offerNextWaitlist(roomId: number, now: number): Promise<vo
        FROM offered_booking b
        WHERE w.id = (SELECT id FROM candidate) AND w.status = 'waiting'
        RETURNING w.id,w.user_id`,
-      [roomId, now, token, WAITLIST_OFFER_WINDOW_MS],
+      [roomId, now, token, WAITLIST_OFFER_WINDOW_MS, NO_SHOW_WINDOW_MS, NO_SHOW_COOLDOWN_MS, NO_SHOW_THRESHOLD],
     );
   } catch (error) {
     if (isDatabaseError(error, "23P01")) {

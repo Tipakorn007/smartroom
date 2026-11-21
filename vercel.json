@@ -3,7 +3,7 @@
   "buildCommand": "bun run build",
   "outputDirectory": "public",
   "env": {
-    "SMARTROOM_LOCAL_DEMO": "true"
+    "SMARTROOM_LOCAL_DEMO": "false"
   },
   "rewrites": [
     {

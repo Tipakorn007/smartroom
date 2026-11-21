@@ -1,9 +1,9 @@
 import { query } from "./db.ts";
 import { HttpError } from "./http.ts";
 
-const NO_SHOW_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
-const NO_SHOW_THRESHOLD = 3;
-const NO_SHOW_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+export const NO_SHOW_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+export const NO_SHOW_THRESHOLD = 3;
+export const NO_SHOW_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 export async function assertUserCanBook(userId: string | null, now: number, exceptBookingId?: number): Promise<void> {
   if (!userId) return;

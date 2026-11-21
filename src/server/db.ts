@@ -5,7 +5,6 @@
 
 import { neon } from "@neondatabase/serverless";
 import type { Booking, BookingStatus, QuietLevel, Room } from "../shared/types.ts";
-import { seedIfEmpty } from "./seed.ts";
 
 export interface RoomRow {
   id: number;
@@ -192,8 +191,6 @@ async function initializeDatabase(): Promise<void> {
     ON waitlist (offer_expires_at)
     WHERE status = 'offered'
   `);
-
-  await seedIfEmpty();
 }
 
 export function toRoom(row: RoomRow): Room {

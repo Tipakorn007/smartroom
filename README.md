@@ -33,14 +33,16 @@
 
 โหมดเดโมไม่เชื่อมฐานข้อมูล แต่ต้องตั้งค่า `ADMIN_PASSWORD` และ `ADMIN_SESSION_SECRET` ใน `.env` หรือ `.env.local` เพื่อเข้าสู่ระบบแอดมิน เซิร์ฟเวอร์เดโมในเครื่องผูกไว้กับเครื่องนี้เท่านั้น หากต้องการทดสอบระบบแอดมินที่บันทึกลง Neon ให้ใช้ `bun run dev:database` หลังตั้งค่าตัวแปรด้านบน
 
-**การตั้งค่า Vercel ในโปรเจกต์นี้เปิดโหมดเดโมอยู่** (`SMARTROOM_LOCAL_DEMO=true` ใน `vercel.json`) ข้อมูลอยู่ในหน่วยความจำของแต่ละ Function ซึ่งอาจหายหรือไม่ตรงกันระหว่างคำขอ ไม่เหมาะกับการจองจริง
+การตั้งค่า Vercel ในโปรเจกต์นี้ใช้ฐานข้อมูล (`SMARTROOM_LOCAL_DEMO=false` ใน `vercel.json`) ส่วนโหมดเดโมในเครื่องเก็บข้อมูลในหน่วยความจำและไม่เหมาะกับการจองจริง
 
-Schema และข้อมูลตัวอย่างจะถูกสร้างโดยอัตโนมัติเมื่อมีการเรียก API ครั้งแรก รวมถึงตารางคิวรอห้อง
+Schema จะถูกสร้างหรือปรับปรุงเมื่อมีการเรียก API ครั้งแรก รวมถึงตารางคิวรอห้อง โดยไม่มีการเติมห้องหรือประวัติตัวอย่างอัตโนมัติ หากฐานข้อมูลยังไม่มีห้อง ให้เพิ่มห้องผ่านระบบจัดการ
+
+การทดสอบ PostgreSQL ใน `tests/waitlist-postgres.test.ts` ปิดไว้ตามค่าเริ่มต้น หากต้องการรัน ให้ใช้ Neon branch สำหรับทดสอบที่ทิ้งได้เท่านั้น ตั้ง `DATABASE_URL` ให้ชี้ branch นั้น แล้วตั้ง `SMARTROOM_TEST_POSTGRES=true` และ `SMARTROOM_TEST_NEON_BRANCH_ID` เป็น branch ID ที่ตรงกันก่อนรัน `bun test --env-file=.env.local` โดยการทดสอบอาจปรับ schema ห้ามใช้ฐานข้อมูล production
 
 ## Deploy ด้วย GitHub และ Vercel
 
 1. Push โค้ดขึ้น GitHub โดยอย่า push ไฟล์ `.env` หรือ connection string
-2. หากต้องการใช้ฐานข้อมูลจริง ให้ปิดโหมดเดโมใน `vercel.json` แล้วสร้างโปรเจกต์ฐานข้อมูลบน Neon และคัดลอก `DATABASE_URL`
+2. สร้างโปรเจกต์ฐานข้อมูลบน Neon และคัดลอก `DATABASE_URL` สำรองข้อมูลและตรวจสอบห้อง การจอง และคิวก่อนสลับจากระบบเดิม ข้อมูลในหน่วยความจำของเดโมจะไม่ย้ายไปโดยอัตโนมัติ
 3. ใน Vercel เลือก **Add New Project** และ Import repository จาก GitHub
 4. ใน Project Settings → Environment Variables ตั้ง `ADMIN_PASSWORD` เป็นรหัสผ่านที่คาดเดายาก และ `ADMIN_SESSION_SECRET` เป็นค่าสุ่มอย่างน้อย 32 ตัวอักษร สำหรับ Production (และ Preview หากต้องการ) หากใช้ฐานข้อมูลจริงให้เพิ่ม `DATABASE_URL` ด้วย อย่าเก็บค่าจริงในโค้ดหรือส่งเข้า Git
 5. Deploy โปรเจกต์ Vercel จะรัน `bun run build` เพื่อสร้างไฟล์ frontend และ bundle API handler สำหรับ Function
