@@ -187,7 +187,7 @@ a {
   display: flex;
   gap: 0.25rem;
   background: var(--surface-muted);
-  border-radius: 0;
+  border-radius: 6px;
   padding: 0.25rem;
   flex-wrap: wrap;
 }
@@ -1132,7 +1132,7 @@ dialog.modal::backdrop {
 
 .tab {
   padding: 0.35rem 0;
-  border-radius: 0;
+  border-radius: 4px;
   background: transparent;
 }
 
@@ -1988,14 +1988,14 @@ dialog.modal::backdrop {
     width: auto;
     gap: 0.2rem;
     padding: 0.25rem;
-    border-radius: 0;
+    border-radius: 6px;
     background: var(--surface-muted);
   }
 
   .tab {
     min-height: 44px;
     padding: 0.45rem 0.2rem;
-    border-radius: 0;
+    border-radius: 4px;
     font-size: 0.92rem;
   }
 
