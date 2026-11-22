@@ -56,7 +56,12 @@ async function serveStatic(pathname: string): Promise<Response> {
       headers: { "content-type": "text/plain; charset=utf-8" },
     });
   }
-  if (pathname === "/smartroom-icon.png" || pathname === "/smartroom-logo.png") {
+  if (pathname === "/manifest.webmanifest") {
+    return new Response(Bun.file(join(PUBLIC_DIR, "manifest.webmanifest")), {
+      headers: { "content-type": "application/manifest+json; charset=utf-8" },
+    });
+  }
+  if (pathname === "/smartroom-icon.png" || pathname === "/smartroom-icon-192.png" || pathname === "/smartroom-logo.png") {
     const image = Bun.file(join(PUBLIC_DIR, pathname.slice(1)));
     if (await image.exists()) {
       return new Response(image, {

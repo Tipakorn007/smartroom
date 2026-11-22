@@ -1,6 +1,6 @@
 import type { QuietLevel } from "../shared/types";
 import { api } from "./api";
-import { currentTheme, el, initTheme, showToast, toggleTheme } from "./ui";
+import { createHeaderMenu, currentTheme, el, initConnectionStatus, initTheme, showToast, toggleTheme } from "./ui";
 import { renderRoomAdminView } from "./views/room-admin";
 import { renderStatsView } from "./views/stats";
 
@@ -8,6 +8,7 @@ const root = document.getElementById("admin-app");
 
 if (root) {
   initTheme();
+  initConnectionStatus();
   const content = el("main", { class: "container" });
   const sectionContent = el("section", { class: "admin-section-content" });
   let activeSection: "rooms" | "stats" = "rooms";
@@ -50,12 +51,22 @@ if (root) {
     updateThemeLabel();
   });
   const headerTools = el("div", { class: "admin-header-tools" }, [themeButton, accountActions]);
+  const checkinTests = el("div", { class: "admin-line-tests" });
+  const mobileHeader = window.matchMedia("(width < 640px)");
+  const placeCheckinTests = (): void => {
+    if (!sectionNav.isConnected) return;
+    if (mobileHeader.matches) headerTools.append(checkinTests);
+    else sectionContent.before(checkinTests);
+  };
+  mobileHeader.addEventListener("change", placeCheckinTests);
+  const menu = createHeaderMenu([headerTools]);
   const header = el("header", { class: "site-header" }, [
     el("div", { class: "header-inner" }, [
       el("div", { class: "brand admin-brand" }, [
         el("img", { class: "brand-mark", attrs: { src: "/smartroom-icon.png", alt: "" } }), title,
       ]),
-      headerTools,
+      menu.button,
+      menu.panel,
     ]),
   ]);
   const footer = el("footer", { class: "site-footer" }, [el("p", { text: "SmartRoom · ระบบจัดการพื้นที่ห้อง" })]);
@@ -83,7 +94,7 @@ if (root) {
           lineTest.disabled = false;
         }
       });
-      const checkinTests = el("div", { class: "admin-line-tests" });
+      checkinTests.replaceChildren();
       for (const [kind, label] of [
         ["checkin-start", "ทดสอบ LINE เริ่มเช็กอิน"],
         ["checkin-warning", "ทดสอบ LINE เตือนก่อนปล่อยห้อง"],
@@ -98,7 +109,8 @@ if (root) {
         checkinTests.append(button);
       }
       accountActions.replaceChildren(lineTest, logout);
-      content.replaceChildren(sectionNav, checkinTests, sectionContent);
+      content.replaceChildren(sectionNav, sectionContent);
+      placeCheckinTests();
       await loadRooms();
     } catch (error) {
       showLogin(error instanceof Error ? error.message : "เชื่อมต่อระบบจัดการไม่ได้");
@@ -114,6 +126,7 @@ if (root) {
 
   function showLogin(message = ""): void {
     accountActions.replaceChildren();
+    checkinTests.remove();
     const form = document.createElement("form");
     form.className = "card stack admin-login-form";
     const heading = el("div", { class: "section-heading" }, [

@@ -2,7 +2,7 @@
 <html lang="th">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="description" content="SmartRoom ระบบจองห้องติวหนังสือในมหาวิทยาลัย ดูสถานะห้องว่างและจองได้สะดวก" />
     <meta property="og:title" content="SmartRoom — จองห้องติวที่รู้สถานะจริง" />
     <meta property="og:description" content="ดูสถานะห้องว่างและจองห้องติวในมหาวิทยาลัยได้สะดวก" />
@@ -16,6 +16,7 @@
     <meta name="theme-color" content="" />
     <link rel="icon" type="image/png" sizes="512x512" href="/smartroom-icon.png" />
     <link rel="apple-touch-icon" href="/smartroom-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <title>SmartRoom — จองห้องติวที่รู้สถานะจริง</title>
 
     <!-- Thai web font with system font fallbacks. -->
@@ -28,6 +29,7 @@
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
+    <div id="offline-status" class="offline-status" role="status" hidden>ไม่มีการเชื่อมต่อ</div>
     <!-- The TypeScript application renders inside this element. -->
     <div id="app"></div>
 

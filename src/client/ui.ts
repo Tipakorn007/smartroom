@@ -67,6 +67,52 @@ export function el<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
+export function createHeaderMenu(children: HTMLElement[]): { button: HTMLButtonElement; panel: HTMLElement } {
+  const panel = el("div", { class: "header-menu-panel", id: "header-menu" }, children);
+  const button = el("button", {
+    class: "icon-button header-menu-button",
+    type: "button",
+    text: "☰",
+    attrs: { "aria-label": "เปิดเมนู", "aria-expanded": "false", "aria-controls": panel.id },
+  });
+  const close = (): void => {
+    button.setAttribute("aria-expanded", "false");
+    button.setAttribute("aria-label", "เปิดเมนู");
+  };
+  const mobile = window.matchMedia("(width < 640px)");
+  mobile.addEventListener("change", close);
+  button.addEventListener("click", () => {
+    const open = button.getAttribute("aria-expanded") !== "true";
+    button.setAttribute("aria-expanded", String(open));
+    button.setAttribute("aria-label", open ? "ปิดเมนู" : "เปิดเมนู");
+  });
+  panel.addEventListener("click", (event) => {
+    if (event.target instanceof Element && event.target.closest("button") && mobile.matches) {
+      close();
+      button.focus();
+    }
+  });
+  document.addEventListener("click", (event) => {
+    if (event.target instanceof Node && !panel.contains(event.target) && !button.contains(event.target)) close();
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && button.getAttribute("aria-expanded") === "true") {
+      close();
+      button.focus();
+    }
+  });
+  return { button, panel };
+}
+
+export function initConnectionStatus(): void {
+  const status = document.getElementById("offline-status");
+  if (!status) return;
+  const update = (): void => { status.hidden = navigator.onLine; };
+  window.addEventListener("online", update);
+  window.addEventListener("offline", update);
+  update();
+}
+
 const BANGKOK_CLOCK = new Intl.DateTimeFormat("th-TH", {
   timeZone: "Asia/Bangkok",
   hour: "2-digit",

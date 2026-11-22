@@ -2,14 +2,17 @@
 <html lang="th">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
     <meta name="theme-color" content="" />
     <link rel="icon" type="image/png" sizes="512x512" href="/smartroom-icon.png" />
+    <link rel="apple-touch-icon" href="/smartroom-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="stylesheet" href="/styles.css" />
     <title>SmartRoom — ระบบจัดการห้อง</title>
   </head>
   <body>
+    <div id="offline-status" class="offline-status" role="status" hidden>ไม่มีการเชื่อมต่อ</div>
     <div id="admin-app"></div>
     <div id="toast-area" class="toast-area" role="status" aria-live="polite"></div>
     <script type="module" src="/admin.js"></script>

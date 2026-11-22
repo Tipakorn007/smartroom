@@ -25,9 +25,11 @@ import {
   formatClock,
   formatCountdown,
   initTheme,
+  initConnectionStatus,
   showToast,
   toggleTheme,
   currentTheme,
+  createHeaderMenu,
 } from "./ui";
 import { getUserId } from "./identity";
 import { openBookingDialog } from "./views/booking";
@@ -68,6 +70,7 @@ let noticesKey = "";
 
 async function bootstrap(): Promise<void> {
   initTheme();
+  initConnectionStatus();
   startCountdownTicker();
 
   const root = document.getElementById("app");
@@ -131,6 +134,7 @@ function buildShell(root: HTMLElement): void {
     });
     nav.append(button);
   }
+  const menu = createHeaderMenu([nav, themeButton]);
   const header = el("header", { class: "site-header" }, [
     el("div", { class: "header-inner" }, [
       el("div", { class: "brand" }, [
@@ -146,8 +150,8 @@ function buildShell(root: HTMLElement): void {
           el("p", { text: "ห้องติว · อาคารเรียนรวม" }),
         ]),
       ]),
-      nav,
-      themeButton,
+      menu.button,
+      menu.panel,
     ]),
   ]);
 
