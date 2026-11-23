@@ -38,7 +38,7 @@ if (root) {
     el("p", { text: "ระบบจัดการห้อง" }),
   ]);
   const accountActions = el("div", { class: "admin-account-actions" });
-  const themeButton = el("button", { class: "icon-button", type: "button", attrs: { "aria-label": "สลับโหมดสว่างและโหมดมืด" } });
+  const themeButton = el("button", { class: "icon-button theme-button", type: "button", attrs: { "aria-label": "สลับโหมดสว่างและโหมดมืด" } });
   const updateThemeLabel = (): void => {
     const theme = currentTheme();
     themeButton.textContent = theme === "dark" ? "☀️ โหมดสว่าง" : "🌙 โหมดมืด";

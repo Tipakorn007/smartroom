@@ -97,7 +97,7 @@ async function bootstrap(): Promise<void> {
 /** สร้าง header + แท็บ + พื้นที่เนื้อหา แล้วเก็บ main ไว้ใช้วาดซ้ำ */
 function buildShell(root: HTMLElement): void {
   const themeButton = el("button", {
-    class: "icon-button",
+    class: "icon-button theme-button",
     type: "button",
     attrs: { "aria-label": "สลับโหมดสว่างและโหมดมืด" },
   });

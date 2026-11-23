@@ -231,6 +231,12 @@ a {
   cursor: pointer;
 }
 
+.theme-button {
+  width: 8.5rem;
+  flex: none;
+  white-space: nowrap;
+}
+
 .container {
   max-width: 1120px;
   margin: 0 auto;
@@ -2528,22 +2534,12 @@ body {
   font-size: 0.82rem;
 }
 
-:root[data-theme="dark"] .room-feature,
-:root[data-theme="dark"] .room-status-detail {
-  font-size: 0.9rem;
-}
-
 :root[data-theme="dark"] .room-feature.is-absent,
 :root[data-theme="dark"] .feature.is-absent {
   opacity: 1;
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .room-feature,
-  :root:not([data-theme="light"]) .room-status-detail {
-    font-size: 0.9rem;
-  }
-
   :root:not([data-theme="light"]) .room-feature.is-absent,
   :root:not([data-theme="light"]) .feature.is-absent {
     opacity: 1;
