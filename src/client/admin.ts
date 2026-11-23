@@ -94,7 +94,7 @@ if (root) {
           lineTest.disabled = false;
         }
       });
-      checkinTests.replaceChildren();
+      checkinTests.replaceChildren(lineTest);
       for (const [kind, label] of [
         ["checkin-start", "ทดสอบ LINE เริ่มเช็กอิน"],
         ["checkin-warning", "ทดสอบ LINE เตือนก่อนปล่อยห้อง"],
@@ -108,7 +108,7 @@ if (root) {
         });
         checkinTests.append(button);
       }
-      accountActions.replaceChildren(lineTest, logout);
+      accountActions.replaceChildren(logout);
       content.replaceChildren(sectionNav, sectionContent);
       placeCheckinTests();
       await loadRooms();
