@@ -37,6 +37,7 @@
   :root:not([data-theme="light"]) { color-scheme: dark;
     --bg: #0b1220; --surface: #111a2b; --border: #1f2a3d;
     --text: #e6edf3; --muted: #bac8d9;
+    --footer-brand-color: var(--muted); --footer-credits-color: color-mix(in srgb, var(--muted) 90%, var(--bg));
     --primary: #2dd4bf; --primary-hover: #5eead4; --on-primary: #042f2e; --link: #2dd4bf;
     --primary-action: var(--primary); --primary-action-hover: var(--primary-hover);
     --button-secondary-bg: var(--surface-muted);
@@ -49,6 +50,7 @@
 :root[data-theme="dark"] { color-scheme: dark;
   --bg: #0b1220; --surface: #111a2b; --border: #1f2a3d;
   --text: #e6edf3; --muted: #bac8d9;
+  --footer-brand-color: var(--muted); --footer-credits-color: color-mix(in srgb, var(--muted) 90%, var(--bg));
   --primary: #2dd4bf; --primary-hover: #5eead4; --on-primary: #042f2e; --link: #2dd4bf;
   --primary-action: var(--primary); --primary-action-hover: var(--primary-hover);
   --button-secondary-bg: var(--surface-muted);
@@ -1802,11 +1804,12 @@ dialog.modal::backdrop {
 }
 
 .footer-brand {
-  color: var(--text);
+  color: var(--footer-brand-color, var(--text));
   font-weight: 700;
 }
 
 .footer-credits {
+  color: var(--footer-credits-color, var(--muted));
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
