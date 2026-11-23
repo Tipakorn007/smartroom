@@ -11,6 +11,7 @@ import {
   CHECKIN_WINDOW_MS,
   PRESENCE_REMINDER_WINDOW_MS,
 } from "../shared/constants";
+import { siGithub, siInstagram } from "simple-icons/icons";
 import type {
   BookingHistoryEntry,
   BookingWithRoom,
@@ -164,12 +165,32 @@ function buildShell(root: HTMLElement): void {
   main.append(noticesElement, contentElement);
   renderLoadingSkeleton(contentElement);
   const footer = el("footer", { class: "site-footer" }, [
-    el("p", {
-      text: "SmartRoom · ห้องที่จองแล้วไม่มาใช้จะถูกปล่อยคืนอัตโนมัติใน 15 นาที",
-    }),
+    el("p", { class: "footer-brand", text: "Developed by" }),
+    el("p", { class: "footer-credits" }, [
+      el("span", { class: "footer-credit" }, [
+        "Tipakorn007",
+        footerIcon(siGithub.path),
+      ]),
+      el("span", { class: "footer-credit" }, [
+        "IG: llmaysa._",
+        footerIcon(siInstagram.path),
+      ]),
+    ]),
   ]);
 
   root.replaceChildren(header, main, footer);
+}
+
+function footerIcon(pathData: string): SVGSVGElement {
+  const namespace = "http://www.w3.org/2000/svg";
+  const icon = document.createElementNS(namespace, "svg");
+  icon.setAttribute("viewBox", "0 0 24 24");
+  icon.setAttribute("aria-hidden", "true");
+  icon.setAttribute("class", "footer-icon");
+  const path = document.createElementNS(namespace, "path");
+  path.setAttribute("d", pathData);
+  icon.append(path);
+  return icon;
 }
 
 function renderLoadingSkeleton(container: HTMLElement): void {

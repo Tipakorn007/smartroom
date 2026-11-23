@@ -8,6 +8,7 @@
         "@neondatabase/serverless": "^1.0.2",
         "@vercel/functions": "^3.11.3",
         "qrcode": "^1.5.4",
+        "simple-icons": "^16.38.1",
       },
       "devDependencies": {
         "@types/bun": "^1.3.0",
@@ -110,6 +111,8 @@
     "shebang-regex": ["shebang-regex@3.0.0", "", {}, "sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A=="],
 
     "signal-exit": ["signal-exit@3.0.7", "", {}, "sha512-wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ=="],
+
+    "simple-icons": ["simple-icons@16.38.1", "", {}, "sha512-q4JnGp1cgeASp4jzEsmSh/7BD/e2y7aYO8XST+QBEvOJ5wzZ/9WRmKsI+QUwkfPUSiXC+sfh2+QetD38zl3N0g=="],
 
     "string-width": ["string-width@4.2.3", "", { "dependencies": { "emoji-regex": "^8.0.0", "is-fullwidth-code-point": "^3.0.0", "strip-ansi": "^6.0.1" } }, "sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g=="],
 
